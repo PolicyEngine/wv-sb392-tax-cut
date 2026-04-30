@@ -460,6 +460,12 @@ export default function AggregateImpact({ triggered }: Props) {
                 West Virginia&apos;s SB 392 income tax cut vs. pre-cut (2025)
                 rates, tax year {selectedYear}.
               </p>
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 mb-4">
+                We find no measurable impact on poverty from West Virginia&apos;s
+                SB 392 income tax cut. Households below the poverty line generally
+                have little or no state income tax liability, so a rate cut does
+                not change their net income.
+              </div>
               <ResponsiveContainer width="100%" height={360}>
                 <BarChart data={povertyData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />

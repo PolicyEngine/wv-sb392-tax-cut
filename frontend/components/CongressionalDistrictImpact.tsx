@@ -166,7 +166,7 @@ export default function CongressionalDistrictImpact({ year = 2026 }: Props) {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Representative</th>
                 <th className="text-right py-3 px-4 font-semibold text-gray-900">Winners</th>
                 <th className="text-right py-3 px-4 font-semibold text-gray-900">Average change</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-900">Child poverty change</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-900">Relative change</th>
               </tr>
             </thead>
             <tbody>
@@ -200,9 +200,7 @@ export default function CongressionalDistrictImpact({ year = 2026 }: Props) {
                     ${d.average_household_income_change.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-700">
-                    {d.child_poverty_pct_change !== undefined
-                      ? `${d.child_poverty_pct_change > 0 ? '+' : ''}${d.child_poverty_pct_change.toFixed(2)}%`
-                      : '—'}
+                    {(d.relative_household_income_change * 100).toFixed(2)}%
                   </td>
                 </tr>
               ))}
@@ -228,7 +226,6 @@ function DistrictDetailCard({
   const losersShare = district.losers_share ?? 0;
   // "No change" is the residual after winners + losers.
   const noChangeShare = Math.max(0, 1 - winnersShare - losersShare);
-  const childPovChange = district.child_poverty_pct_change ?? 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -264,7 +261,7 @@ function DistrictDetailCard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
             Average household impact
@@ -287,18 +284,6 @@ function DistrictDetailCard({
             {(winnersShare * 100).toFixed(1)}%
           </p>
           <p className="text-xs text-gray-500 mt-1">of households gain</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Child poverty change</p>
-          <p
-            className={`text-xl font-bold ${
-              childPovChange < 0 ? 'text-teal-700' : childPovChange > 0 ? 'text-red-700' : 'text-gray-700'
-            }`}
-          >
-            {childPovChange > 0 ? '+' : ''}
-            {childPovChange.toFixed(2)}%
-          </p>
-          <p className="text-xs text-gray-500 mt-1">vs. pre-cut rates</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">No change</p>
