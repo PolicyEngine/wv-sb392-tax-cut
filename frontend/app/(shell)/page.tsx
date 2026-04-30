@@ -112,7 +112,7 @@ function HouseholdImpactTab() {
     return {
       income: params.income ?? 50000,
       age: params.age ?? 35,
-      state: params.state ?? 'NJ',
+      state: params.state ?? 'WV',
       married: params.married ?? false,
       dependents: params.dependents ?? [5],
     };
