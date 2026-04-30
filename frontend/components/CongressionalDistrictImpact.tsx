@@ -166,7 +166,6 @@ export default function CongressionalDistrictImpact({ year = 2026 }: Props) {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Representative</th>
                 <th className="text-right py-3 px-4 font-semibold text-gray-900">Winners</th>
                 <th className="text-right py-3 px-4 font-semibold text-gray-900">Average change</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-900">Relative change</th>
               </tr>
             </thead>
             <tbody>
@@ -183,7 +182,7 @@ export default function CongressionalDistrictImpact({ year = 2026 }: Props) {
                   }
                 >
                   <td className="py-3 px-4 text-gray-700 font-medium">
-                    NJ-{String(d.district_number).padStart(2, '0')}
+                    WV-{String(d.district_number).padStart(2, '0')}
                     <span className="block text-xs text-gray-500 font-normal">{d.region}</span>
                   </td>
                   <td className="py-3 px-4" style={{ color: partyColor(d.party) }}>
@@ -198,9 +197,6 @@ export default function CongressionalDistrictImpact({ year = 2026 }: Props) {
                   <td className="py-3 px-4 text-right text-gray-700">
                     {d.average_household_income_change >= 0 ? '+' : ''}
                     ${d.average_household_income_change.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                  </td>
-                  <td className="py-3 px-4 text-right text-gray-700">
-                    {(d.relative_household_income_change * 100).toFixed(2)}%
                   </td>
                 </tr>
               ))}
@@ -275,7 +271,7 @@ function DistrictDetailCard({
             ${avgChange.toLocaleString('en-US', { maximumFractionDigits: 0 })}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {(district.relative_household_income_change * 100).toFixed(2)}% of income
+            average West Virginia household
           </p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
