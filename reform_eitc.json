@@ -1,0 +1,6 @@
+{
+  "_comment": "NJ Cash Alliance EITC expansion: raises the NJ EITC match rate from 40% to 50% of the federal EITC. Effective 2026.",
+  "gov.states.nj.tax.income.credits.eitc.match": {
+    "2026-01-01.2100-12-31": 0.5
+  }
+}

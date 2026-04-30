@@ -1,0 +1,77 @@
+{
+  "gov.states.wv.tax.income.rates.single.brackets[0].rate": {
+    "2026-01-01.2100-12-31": 0.0222
+  },
+  "gov.states.wv.tax.income.rates.single.brackets[1].rate": {
+    "2026-01-01.2100-12-31": 0.0296
+  },
+  "gov.states.wv.tax.income.rates.single.brackets[2].rate": {
+    "2026-01-01.2100-12-31": 0.0333
+  },
+  "gov.states.wv.tax.income.rates.single.brackets[3].rate": {
+    "2026-01-01.2100-12-31": 0.0444
+  },
+  "gov.states.wv.tax.income.rates.single.brackets[4].rate": {
+    "2026-01-01.2100-12-31": 0.0482
+  },
+  "gov.states.wv.tax.income.rates.joint.brackets[0].rate": {
+    "2026-01-01.2100-12-31": 0.0222
+  },
+  "gov.states.wv.tax.income.rates.joint.brackets[1].rate": {
+    "2026-01-01.2100-12-31": 0.0296
+  },
+  "gov.states.wv.tax.income.rates.joint.brackets[2].rate": {
+    "2026-01-01.2100-12-31": 0.0333
+  },
+  "gov.states.wv.tax.income.rates.joint.brackets[3].rate": {
+    "2026-01-01.2100-12-31": 0.0444
+  },
+  "gov.states.wv.tax.income.rates.joint.brackets[4].rate": {
+    "2026-01-01.2100-12-31": 0.0482
+  },
+  "gov.states.wv.tax.income.rates.head.brackets[0].rate": {
+    "2026-01-01.2100-12-31": 0.0222
+  },
+  "gov.states.wv.tax.income.rates.head.brackets[1].rate": {
+    "2026-01-01.2100-12-31": 0.0296
+  },
+  "gov.states.wv.tax.income.rates.head.brackets[2].rate": {
+    "2026-01-01.2100-12-31": 0.0333
+  },
+  "gov.states.wv.tax.income.rates.head.brackets[3].rate": {
+    "2026-01-01.2100-12-31": 0.0444
+  },
+  "gov.states.wv.tax.income.rates.head.brackets[4].rate": {
+    "2026-01-01.2100-12-31": 0.0482
+  },
+  "gov.states.wv.tax.income.rates.surviving_spouse.brackets[0].rate": {
+    "2026-01-01.2100-12-31": 0.0222
+  },
+  "gov.states.wv.tax.income.rates.surviving_spouse.brackets[1].rate": {
+    "2026-01-01.2100-12-31": 0.0296
+  },
+  "gov.states.wv.tax.income.rates.surviving_spouse.brackets[2].rate": {
+    "2026-01-01.2100-12-31": 0.0333
+  },
+  "gov.states.wv.tax.income.rates.surviving_spouse.brackets[3].rate": {
+    "2026-01-01.2100-12-31": 0.0444
+  },
+  "gov.states.wv.tax.income.rates.surviving_spouse.brackets[4].rate": {
+    "2026-01-01.2100-12-31": 0.0482
+  },
+  "gov.states.wv.tax.income.rates.separate.brackets[0].rate": {
+    "2026-01-01.2100-12-31": 0.0222
+  },
+  "gov.states.wv.tax.income.rates.separate.brackets[1].rate": {
+    "2026-01-01.2100-12-31": 0.0296
+  },
+  "gov.states.wv.tax.income.rates.separate.brackets[2].rate": {
+    "2026-01-01.2100-12-31": 0.0333
+  },
+  "gov.states.wv.tax.income.rates.separate.brackets[3].rate": {
+    "2026-01-01.2100-12-31": 0.0444
+  },
+  "gov.states.wv.tax.income.rates.separate.brackets[4].rate": {
+    "2026-01-01.2100-12-31": 0.0482
+  }
+}
