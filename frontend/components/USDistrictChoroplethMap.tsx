@@ -335,6 +335,16 @@ export default function WVDistrictChoroplethMap({
             Avg impact:{' '}
             {formatSignedCurrency(tooltipData.average_household_income_change)}
           </p>
+          <p className="text-sm text-gray-600">
+            Relative change:{' '}
+            {(tooltipData.relative_household_income_change * 100).toFixed(2)}%
+          </p>
+          {tooltipData.winners_share !== undefined && (
+            <p className="text-sm text-gray-600">
+              Households gaining:{' '}
+              {(tooltipData.winners_share * 100).toFixed(1)}%
+            </p>
+          )}
         </div>
       )}
 

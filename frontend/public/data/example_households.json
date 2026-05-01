@@ -1,0 +1,106 @@
+{
+  "year": 2026,
+  "households": [
+    {
+      "label": "Single filer, $30k",
+      "income": 30000,
+      "age_head": 30,
+      "married": false,
+      "dependents": [],
+      "pre_cut": {
+        "household_net_income": 25806.783,
+        "wv_income_tax": 765.9,
+        "income_tax": 1420.0
+      },
+      "current_law": {
+        "household_net_income": 25845.383,
+        "wv_income_tax": 727.3,
+        "income_tax": 1420.0
+      },
+      "net_income_change": 38.60000000000218,
+      "wv_tax_change": -38.60000000000002
+    },
+    {
+      "label": "Single filer, $60k",
+      "income": 60000,
+      "age_head": 35,
+      "married": false,
+      "dependents": [],
+      "pre_cut": {
+        "household_net_income": 48425.3,
+        "wv_income_tax": 1964.7,
+        "income_tax": 5020.0
+      },
+      "current_law": {
+        "household_net_income": 48523.9,
+        "wv_income_tax": 1866.1,
+        "income_tax": 5020.0
+      },
+      "net_income_change": 98.59999999999854,
+      "wv_tax_change": -98.60000000000014
+    },
+    {
+      "label": "Married couple, $80k, no kids",
+      "income": 80000,
+      "age_head": 35,
+      "married": true,
+      "dependents": [],
+      "pre_cut": {
+        "household_net_income": 65815.3,
+        "wv_income_tax": 2824.7,
+        "income_tax": 5240.0
+      },
+      "current_law": {
+        "household_net_income": 65956.7,
+        "wv_income_tax": 2683.3,
+        "income_tax": 5240.0
+      },
+      "net_income_change": 141.39999999999418,
+      "wv_tax_change": -141.39999999999964
+    },
+    {
+      "label": "Married couple, $100k, 2 kids",
+      "income": 100000,
+      "age_head": 40,
+      "married": true,
+      "dependents": [
+        8,
+        10
+      ],
+      "pre_cut": {
+        "household_net_income": 85514.1,
+        "wv_income_tax": 3595.9,
+        "income_tax": 3240.0
+      },
+      "current_law": {
+        "household_net_income": 85693.9,
+        "wv_income_tax": 3416.1,
+        "income_tax": 3240.0
+      },
+      "net_income_change": 179.79999999998836,
+      "wv_tax_change": -179.80000000000018
+    },
+    {
+      "label": "Married couple, $150k, 2 kids",
+      "income": 150000,
+      "age_head": 45,
+      "married": true,
+      "dependents": [
+        12,
+        15
+      ],
+      "pre_cut": {
+        "household_net_income": 121579.1,
+        "wv_income_tax": 6005.9,
+        "income_tax": 10940.0
+      },
+      "current_law": {
+        "household_net_income": 121878.9,
+        "wv_income_tax": 5706.1,
+        "income_tax": 10940.0
+      },
+      "net_income_change": 299.79999999998836,
+      "wv_tax_change": -299.7999999999993
+    }
+  ]
+}
