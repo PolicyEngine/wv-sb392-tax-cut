@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import PrecomputedExampleChart from './PrecomputedExampleChart';
 
 export interface ExampleHouseholdProfile {
   label: string;
@@ -8,6 +9,13 @@ export interface ExampleHouseholdProfile {
   age_head: number;
   married: boolean;
   dependents: number[];
+}
+
+interface ChartArrays {
+  income_range: number[];
+  net_income_change: number[];
+  state_tax_change: number[];
+  federal_tax_change: number[];
 }
 
 interface ExampleHousehold extends ExampleHouseholdProfile {
@@ -23,6 +31,7 @@ interface ExampleHousehold extends ExampleHouseholdProfile {
   };
   net_income_change: number;
   wv_tax_change: number;
+  chart: ChartArrays;
 }
 
 interface Payload {
@@ -40,16 +49,10 @@ const fmtSigned = (v: number) => {
   return base;
 };
 
-interface Props {
-  onSelect: (profile: ExampleHouseholdProfile) => void;
-  /** Label of the currently selected example, so the matching card can
-   *  highlight itself. */
-  selectedLabel?: string | null;
-}
-
-export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
+export default function ExampleHouseholds() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const basePath =
@@ -68,14 +71,19 @@ export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
   if (error) return null;
   if (!data) return null;
 
+  const selected = selectedLabel
+    ? data.households.find((h) => h.label === selectedLabel) ?? null
+    : null;
+
   return (
     <div>
       <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Example households
       </h3>
       <p className="text-sm text-gray-600 mb-3">
-        Click an example to load it into the household calculator below and see
-        the full net-income chart for {data.year}.
+        Click any example for an instant net-income chart for {data.year}.
+        Charts come from precomputed values, so they appear without firing
+        a live calculation.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {data.households.map((h, i) => {
@@ -86,13 +94,7 @@ export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
               key={i}
               type="button"
               onClick={() =>
-                onSelect({
-                  label: h.label,
-                  income: h.income,
-                  age_head: h.age_head,
-                  married: h.married,
-                  dependents: h.dependents,
-                })
+                setSelectedLabel(isSelected ? null : h.label)
               }
               className={`text-left rounded-lg border p-4 transition-all hover:shadow-md ${
                 isSelected
@@ -125,7 +127,7 @@ export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
                   isSelected ? 'text-primary-700' : 'text-primary-600'
                 }`}
               >
-                {isSelected ? '✓ Loaded — see chart below' : 'Click to load →'}
+                {isSelected ? '✓ Showing chart below' : 'Click to view chart →'}
               </p>
             </button>
           );
@@ -137,6 +139,19 @@ export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
         reflect the household&apos;s combined federal + state tax change; the
         secondary line shows the West Virginia state portion only.
       </p>
+
+      {selected && (
+        <PrecomputedExampleChart
+          label={selected.label}
+          income={selected.income}
+          chart={selected.chart}
+          federalTaxAtIncome={
+            selected.current_law.income_tax - selected.pre_cut.income_tax
+          }
+          stateTaxAtIncome={selected.wv_tax_change}
+          netIncomeChangeAtIncome={selected.net_income_change}
+        />
+      )}
     </div>
   );
 }

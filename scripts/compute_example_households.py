@@ -80,13 +80,18 @@ def revert_policy() -> dict:
     return out
 
 
-def build_household(profile: dict) -> dict:
-    """Build a PolicyEngine household situation for the given profile."""
+def build_household(profile: dict, with_axes: bool = False) -> dict:
+    """Build a PolicyEngine household situation for the given profile.
+
+    If ``with_axes`` is True, sweeps employment_income from $0 to a
+    profile-derived max so we can pre-compute the full net-income chart.
+    """
     year = str(YEAR)
+    income_for_baseline = None if with_axes else profile["income"]
     people: dict = {
         "you": {
             "age": {year: profile["age_head"]},
-            "employment_income": {year: profile["income"]},
+            "employment_income": {year: income_for_baseline},
         }
     }
     members = ["you"]
@@ -109,7 +114,7 @@ def build_household(profile: dict) -> dict:
         members.append(cid)
         marital_units[f"{cid}'s marital unit"] = {"members": [cid]}
 
-    return {
+    situation: dict = {
         "people": people,
         "families": {"your family": {"members": members}},
         "marital_units": marital_units,
@@ -117,6 +122,7 @@ def build_household(profile: dict) -> dict:
         "tax_units": {
             "your tax unit": {
                 "members": members,
+                "adjusted_gross_income": {year: None},
                 "income_tax": {year: None},
                 "wv_income_tax": {year: None},
             }
@@ -129,6 +135,22 @@ def build_household(profile: dict) -> dict:
             }
         },
     }
+
+    if with_axes:
+        axis_max = max(profile["income"] * 2, 100_000)
+        situation["axes"] = [
+            [
+                {
+                    "name": "employment_income",
+                    "min": 0,
+                    "max": axis_max,
+                    "count": 201,
+                    "period": year,
+                    "target": "person",
+                }
+            ]
+        ]
+    return situation
 
 
 def calc(situation: dict, policy: dict | None) -> dict:
@@ -156,11 +178,33 @@ def extract(result: dict) -> dict:
 
 
 def compute_profile(profile: dict) -> dict:
-    """Run baseline (revert applied = pre-cut) and reform (current law)
-    for one profile and return the diff alongside the inputs."""
-    situation = build_household(profile)
-    pre_cut = extract(calc(situation, revert_policy()))
-    current = extract(calc(situation, None))
+    """Run baseline (revert = pre-cut) and reform (current law) for one
+    profile, both at the user's income point and as an income sweep, so
+    the page can render the full net-income chart instantly."""
+    yr = str(YEAR)
+
+    # Point estimate (single income).
+    point_situation = build_household(profile, with_axes=False)
+    pre_cut = extract(calc(point_situation, revert_policy()))
+    current = extract(calc(point_situation, None))
+
+    # Income sweep — only what the chart actually uses.
+    sweep_situation = build_household(profile, with_axes=True)
+    pre_sweep = calc(sweep_situation, revert_policy())
+    cur_sweep = calc(sweep_situation, None)
+
+    income_range = pre_sweep["people"]["you"]["employment_income"][yr]
+    pre_net = pre_sweep["households"]["your household"]["household_net_income"][yr]
+    cur_net = cur_sweep["households"]["your household"]["household_net_income"][yr]
+    pre_state = pre_sweep["tax_units"]["your tax unit"]["wv_income_tax"][yr]
+    cur_state = cur_sweep["tax_units"]["your tax unit"]["wv_income_tax"][yr]
+    pre_fed = pre_sweep["tax_units"]["your tax unit"]["income_tax"][yr]
+    cur_fed = cur_sweep["tax_units"]["your tax unit"]["income_tax"][yr]
+
+    net_income_change = [c - p for c, p in zip(cur_net, pre_net)]
+    state_tax_change = [c - p for c, p in zip(cur_state, pre_state)]
+    federal_tax_change = [c - p for c, p in zip(cur_fed, pre_fed)]
+
     return {
         **profile,
         "pre_cut": pre_cut,
@@ -168,6 +212,12 @@ def compute_profile(profile: dict) -> dict:
         "net_income_change": current["household_net_income"]
         - pre_cut["household_net_income"],
         "wv_tax_change": current["wv_income_tax"] - pre_cut["wv_income_tax"],
+        "chart": {
+            "income_range": income_range,
+            "net_income_change": net_income_change,
+            "state_tax_change": state_tax_change,
+            "federal_tax_change": federal_tax_change,
+        },
     }
 
 
