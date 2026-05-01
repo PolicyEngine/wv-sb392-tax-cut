@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
-interface ExampleHousehold {
+export interface ExampleHouseholdProfile {
   label: string;
   income: number;
   age_head: number;
   married: boolean;
   dependents: number[];
+}
+
+interface ExampleHousehold extends ExampleHouseholdProfile {
   pre_cut: {
     household_net_income: number;
     wv_income_tax: number;
@@ -37,7 +40,14 @@ const fmtSigned = (v: number) => {
   return base;
 };
 
-export default function ExampleHouseholds() {
+interface Props {
+  onSelect: (profile: ExampleHouseholdProfile) => void;
+  /** Label of the currently selected example, so the matching card can
+   *  highlight itself. */
+  selectedLabel?: string | null;
+}
+
+export default function ExampleHouseholds({ onSelect, selectedLabel }: Props) {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,21 +74,34 @@ export default function ExampleHouseholds() {
         Example households
       </h3>
       <p className="text-sm text-gray-600 mb-3">
-        Net income change for {data.year} under SB 392 vs. pre-cut (2025) rates,
-        for a few representative West Virginia households.
+        Click an example to load it into the household calculator below and see
+        the full net-income chart for {data.year}.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {data.households.map((h, i) => {
           const isGain = h.net_income_change > 0;
+          const isSelected = selectedLabel === h.label;
           return (
-            <div
+            <button
               key={i}
-              className={`rounded-lg border p-4 ${
-                isGain
-                  ? 'bg-green-50 border-success'
-                  : h.net_income_change < 0
-                    ? 'bg-red-50 border-red-300'
-                    : 'bg-gray-50 border-gray-300'
+              type="button"
+              onClick={() =>
+                onSelect({
+                  label: h.label,
+                  income: h.income,
+                  age_head: h.age_head,
+                  married: h.married,
+                  dependents: h.dependents,
+                })
+              }
+              className={`text-left rounded-lg border p-4 transition-all hover:shadow-md ${
+                isSelected
+                  ? 'ring-2 ring-primary-500 ring-offset-1 bg-white border-primary-500'
+                  : isGain
+                    ? 'bg-green-50 border-success hover:border-green-500'
+                    : h.net_income_change < 0
+                      ? 'bg-red-50 border-red-300 hover:border-red-400'
+                      : 'bg-gray-50 border-gray-300 hover:border-gray-400'
               }`}
             >
               <p className="text-sm font-semibold text-gray-800">{h.label}</p>
@@ -97,7 +120,14 @@ export default function ExampleHouseholds() {
                 West Virginia tax: {fmtCurrency(h.pre_cut.wv_income_tax)} →{' '}
                 {fmtCurrency(h.current_law.wv_income_tax)}
               </p>
-            </div>
+              <p
+                className={`text-xs mt-3 font-semibold uppercase tracking-[0.06em] ${
+                  isSelected ? 'text-primary-700' : 'text-primary-600'
+                }`}
+              >
+                {isSelected ? '✓ Loaded — see chart below' : 'Click to load →'}
+              </p>
+            </button>
           );
         })}
       </div>

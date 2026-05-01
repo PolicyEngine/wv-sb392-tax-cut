@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ImpactAnalysis from '@/components/ImpactAnalysis';
 import AggregateImpact from '@/components/AggregateImpact';
-import ExampleHouseholds from '@/components/ExampleHouseholds';
+import ExampleHouseholds, { type ExampleHouseholdProfile } from '@/components/ExampleHouseholds';
 import PolicyOverview from '@/components/PolicyOverview';
 import CongressionalDistrictImpact from '@/components/CongressionalDistrictImpact';
 import type { HouseholdRequest } from '@/lib/types';
@@ -131,6 +131,7 @@ function HouseholdImpactTab() {
   const [maxEarnings, setMaxEarnings] = useState(100000);
   const [triggered, setTriggered] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<HouseholdRequest | null>(null);
+  const [selectedExampleLabel, setSelectedExampleLabel] = useState<string | null>(null);
 
   // Listen for hash changes to update form values
   useEffect(() => {
@@ -194,12 +195,41 @@ function HouseholdImpactTab() {
   const handleCalculate = () => {
     setSubmittedRequest(buildRequest());
     setTriggered(true);
+    setSelectedExampleLabel(null);
+  };
+
+  /** Load an example profile into the form fields and immediately fire
+   * the household impact calc so the chart appears below. */
+  const handleSelectExample = (profile: ExampleHouseholdProfile) => {
+    setSelectedExampleLabel(profile.label);
+    setIncome(profile.income);
+    setAgeHead(profile.age_head);
+    setAgeHeadRaw(String(profile.age_head));
+    setMarried(profile.married);
+    setAgeSpouse(profile.married ? 35 : null);
+    setAgeSpouseRaw('35');
+    setDependentAges(profile.dependents);
+    const request: HouseholdRequest = {
+      age_head: profile.age_head,
+      age_spouse: profile.married ? 35 : null,
+      dependent_ages: profile.dependents,
+      income: profile.income,
+      year: 2026,
+      max_earnings: maxEarnings,
+      state_code: 'WV',
+    };
+    setSubmittedRequest(request);
+    setTriggered(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* Pre-computed example households for quick orientation. */}
-      <ExampleHouseholds />
+      {/* Pre-computed example households — clicking one loads the profile
+          into the form and renders its net-income chart below. */}
+      <ExampleHouseholds
+        onSelect={handleSelectExample}
+        selectedLabel={selectedExampleLabel}
+      />
 
       {/* Inline household config */}
       <section className="bg-gray-50 rounded-xl p-6 md:p-8 border border-gray-200 shadow-sm">

@@ -16,3 +16,5 @@ dist/
 *.log
 coverage/
 .modal/
+
+.vercel
