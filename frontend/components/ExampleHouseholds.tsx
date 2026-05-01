@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import PrecomputedExampleChart from './PrecomputedExampleChart';
+import type { HouseholdImpactResponse } from '@/lib/types';
 
 export interface ExampleHouseholdProfile {
   label: string;
@@ -49,10 +49,51 @@ const fmtSigned = (v: number) => {
   return base;
 };
 
-export default function ExampleHouseholds() {
+/** Build a HouseholdImpactResponse-shaped payload from one of the
+ *  precomputed example records, so the existing ImpactAnalysis chart
+ *  can render it without firing a live API call. */
+function toImpactResponse(h: ExampleHousehold): HouseholdImpactResponse {
+  const xMax = h.chart.income_range[h.chart.income_range.length - 1];
+  const federalTaxChange =
+    h.current_law.income_tax - h.pre_cut.income_tax;
+  return {
+    income_range: h.chart.income_range,
+    net_income_change: h.chart.net_income_change,
+    federalTaxChange: h.chart.federal_tax_change,
+    stateTaxChange: h.chart.state_tax_change,
+    netIncomeChange: h.chart.net_income_change,
+    benefit_at_income: {
+      baseline: h.pre_cut.household_net_income,
+      reform: h.current_law.household_net_income,
+      difference: h.net_income_change,
+      federal_eitc_change: 0,
+      state_eitc_change: 0,
+      federal_tax_change: federalTaxChange,
+      state_tax_change: h.wv_tax_change,
+      net_income_change: h.net_income_change,
+    },
+    x_axis_max: xMax,
+  };
+}
+
+interface Props {
+  /** Fires when a card is clicked; parent populates the household form
+   *  and passes the precomputed response into ImpactAnalysis. */
+  onSelect: (
+    profile: ExampleHouseholdProfile,
+    response: HouseholdImpactResponse,
+  ) => void;
+  /** Label of the currently active example, so the matching card can
+   *  highlight itself. */
+  selectedLabel?: string | null;
+}
+
+export default function ExampleHouseholds({
+  onSelect,
+  selectedLabel,
+}: Props) {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   useEffect(() => {
     const basePath =
@@ -71,19 +112,15 @@ export default function ExampleHouseholds() {
   if (error) return null;
   if (!data) return null;
 
-  const selected = selectedLabel
-    ? data.households.find((h) => h.label === selectedLabel) ?? null
-    : null;
-
   return (
     <div>
       <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Example households
       </h3>
       <p className="text-sm text-gray-600 mb-3">
-        Click any example for an instant net-income chart for {data.year}.
-        Charts come from precomputed values, so they appear without firing
-        a live calculation.
+        Click an example to load its profile into the calculator and render its
+        net-income chart instantly. Charts come from precomputed values; no
+        live API call.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {data.households.map((h, i) => {
@@ -94,7 +131,16 @@ export default function ExampleHouseholds() {
               key={i}
               type="button"
               onClick={() =>
-                setSelectedLabel(isSelected ? null : h.label)
+                onSelect(
+                  {
+                    label: h.label,
+                    income: h.income,
+                    age_head: h.age_head,
+                    married: h.married,
+                    dependents: h.dependents,
+                  },
+                  toImpactResponse(h),
+                )
               }
               className={`text-left rounded-lg border p-4 transition-all hover:shadow-md ${
                 isSelected
@@ -127,7 +173,7 @@ export default function ExampleHouseholds() {
                   isSelected ? 'text-primary-700' : 'text-primary-600'
                 }`}
               >
-                {isSelected ? '✓ Showing chart below' : 'Click to view chart →'}
+                {isSelected ? '✓ Loaded' : 'Click to load →'}
               </p>
             </button>
           );
@@ -135,23 +181,8 @@ export default function ExampleHouseholds() {
       </div>
       <p className="text-[11px] text-gray-500 italic mt-2">
         Single filers use the standard deduction. Married couples file jointly
-        with the spouse aged 35. Dependents have the listed ages. Numbers
-        reflect the household&apos;s combined federal + state tax change; the
-        secondary line shows the West Virginia state portion only.
+        with the spouse aged 35. Dependents have the listed ages.
       </p>
-
-      {selected && (
-        <PrecomputedExampleChart
-          label={selected.label}
-          income={selected.income}
-          chart={selected.chart}
-          federalTaxAtIncome={
-            selected.current_law.income_tax - selected.pre_cut.income_tax
-          }
-          stateTaxAtIncome={selected.wv_tax_change}
-          netIncomeChangeAtIncome={selected.net_income_change}
-        />
-      )}
     </div>
   );
 }

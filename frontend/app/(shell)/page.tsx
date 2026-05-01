@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import ImpactAnalysis from '@/components/ImpactAnalysis';
 import AggregateImpact from '@/components/AggregateImpact';
-import ExampleHouseholds from '@/components/ExampleHouseholds';
+import ExampleHouseholds, { type ExampleHouseholdProfile } from '@/components/ExampleHouseholds';
 import PolicyOverview from '@/components/PolicyOverview';
 import CongressionalDistrictImpact from '@/components/CongressionalDistrictImpact';
-import type { HouseholdRequest } from '@/lib/types';
+import type { HouseholdImpactResponse, HouseholdRequest } from '@/lib/types';
 import { parseHashParams } from '@/lib/embedding';
 
 const US_STATES = [
@@ -131,6 +131,9 @@ function HouseholdImpactTab() {
   const [maxEarnings, setMaxEarnings] = useState(100000);
   const [triggered, setTriggered] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<HouseholdRequest | null>(null);
+  const [precomputedImpact, setPrecomputedImpact] =
+    useState<HouseholdImpactResponse | null>(null);
+  const [selectedExampleLabel, setSelectedExampleLabel] = useState<string | null>(null);
 
   // Listen for hash changes to update form values
   useEffect(() => {
@@ -194,13 +197,52 @@ function HouseholdImpactTab() {
   const handleCalculate = () => {
     setSubmittedRequest(buildRequest());
     setTriggered(true);
+    // Manual recompute clears any active precomputed example so the
+    // chart goes back to fetching live numbers.
+    setPrecomputedImpact(null);
+    setSelectedExampleLabel(null);
+  };
+
+  /** Click handler from ExampleHouseholds. Updates the form fields to
+   * mirror the selected profile and stashes the precomputed impact
+   * payload so ImpactAnalysis renders without firing a live request. */
+  const handleSelectExample = (
+    profile: ExampleHouseholdProfile,
+    response: HouseholdImpactResponse,
+  ) => {
+    setSelectedExampleLabel(profile.label);
+    setIncome(profile.income);
+    setAgeHead(profile.age_head);
+    setAgeHeadRaw(String(profile.age_head));
+    setMarried(profile.married);
+    setAgeSpouse(profile.married ? 35 : null);
+    setAgeSpouseRaw('35');
+    setDependentAges(profile.dependents);
+    setStateCode('WV');
+    const exampleMaxEarnings = response.x_axis_max ?? maxEarnings;
+    setMaxEarnings(exampleMaxEarnings);
+    setSubmittedRequest({
+      age_head: profile.age_head,
+      age_spouse: profile.married ? 35 : null,
+      dependent_ages: profile.dependents,
+      income: profile.income,
+      year: 2026,
+      max_earnings: exampleMaxEarnings,
+      state_code: 'WV',
+    });
+    setPrecomputedImpact(response);
+    setTriggered(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* Pre-computed example households — clicking one renders the
-          precomputed net-income chart inline. */}
-      <ExampleHouseholds />
+      {/* Pre-computed example households — clicking one populates the
+          form below and the existing impact chart with precomputed
+          values (no live API call). */}
+      <ExampleHouseholds
+        onSelect={handleSelectExample}
+        selectedLabel={selectedExampleLabel}
+      />
 
       {/* Inline household config */}
       <section className="bg-gray-50 rounded-xl p-6 md:p-8 border border-gray-200 shadow-sm">
@@ -355,7 +397,12 @@ function HouseholdImpactTab() {
 
       {/* Impact results */}
       {submittedRequest && (
-        <ImpactAnalysis request={submittedRequest} triggered={triggered} maxEarnings={maxEarnings} />
+        <ImpactAnalysis
+          request={submittedRequest}
+          triggered={triggered}
+          maxEarnings={maxEarnings}
+          precomputed={precomputedImpact}
+        />
       )}
     </div>
   );
