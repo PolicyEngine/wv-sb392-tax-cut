@@ -1,7 +1,5 @@
 'use client';
 
-import ExampleHouseholds from './ExampleHouseholds';
-
 export default function PolicyOverview() {
   return (
     <div className="space-y-10">
@@ -82,9 +80,6 @@ export default function PolicyOverview() {
           </p>
         </div>
       </div>
-
-      {/* Example households */}
-      <ExampleHouseholds />
 
       {/* References */}
       <div>

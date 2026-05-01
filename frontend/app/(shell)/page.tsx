@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ImpactAnalysis from '@/components/ImpactAnalysis';
 import AggregateImpact from '@/components/AggregateImpact';
+import ExampleHouseholds from '@/components/ExampleHouseholds';
 import PolicyOverview from '@/components/PolicyOverview';
 import CongressionalDistrictImpact from '@/components/CongressionalDistrictImpact';
 import type { HouseholdRequest } from '@/lib/types';
@@ -197,6 +198,9 @@ function HouseholdImpactTab() {
 
   return (
     <div className="space-y-6">
+      {/* Pre-computed example households for quick orientation. */}
+      <ExampleHouseholds />
+
       {/* Inline household config */}
       <section className="bg-gray-50 rounded-xl p-6 md:p-8 border border-gray-200 shadow-sm">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Your household</h2>

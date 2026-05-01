@@ -37,13 +37,16 @@ const CHART_MARGIN = { top: 20, right: 20, bottom: 30, left: 60 };
 const TICK_STYLE = { fontFamily: 'var(--font-sans)', fontSize: 12 };
 
 // Custom tooltip component
-function CustomTooltip({ active, payload, label, formatter }: {
+function CustomTooltip({ active, payload, label, formatter, labelFormatter }: {
   active?: boolean;
   payload?: { name: string; value: number; color?: string }[];
   label?: string;
   formatter?: (value: number, name: string) => string;
+  labelFormatter?: (label: string) => string;
 }) {
   if (!active || !payload?.length) return null;
+  const displayLabel =
+    label !== undefined && labelFormatter ? labelFormatter(label) : label;
   return (
     <div style={{
       background: 'var(--chart-tooltip-bg)',
@@ -53,7 +56,7 @@ function CustomTooltip({ active, payload, label, formatter }: {
       fontFamily: 'var(--font-sans)',
       fontSize: 12,
     }}>
-      {label && <p style={{ margin: '0 0 4px', fontWeight: 600, color: 'var(--text-heading)' }}>{label}</p>}
+      {displayLabel && <p style={{ margin: '0 0 4px', fontWeight: 600, color: 'var(--text-heading)' }}>{displayLabel}</p>}
       {payload.map((entry, i) => (
         <p key={i} style={{ margin: 0, color: entry.color || 'var(--text-body)' }}>
           {entry.name}: {formatter ? formatter(entry.value, entry.name) : entry.value}
@@ -310,9 +313,12 @@ export default function AggregateImpact({ triggered }: Props) {
                     width={isRelative ? 60 : 80}
                     allowDecimals={false}
                   />
-                  <Tooltip content={<CustomTooltip formatter={isRelative
-                    ? (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
-                    : (v) => formatCurrencyWithSign(v)} />}
+                  <Tooltip content={<CustomTooltip
+                    formatter={isRelative
+                      ? (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+                      : (v) => formatCurrencyWithSign(v)}
+                    labelFormatter={(l) => `Decile ${l}`}
+                  />}
                   />
                   <ReferenceLine y={0} stroke="var(--chart-axis)" strokeWidth={1} />
                   <Bar dataKey="value" name={isRelative ? 'Relative impact (% of income)' : 'Average impact'} radius={[2, 2, 0, 0]}>
@@ -386,7 +392,10 @@ export default function AggregateImpact({ triggered }: Props) {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                       <XAxis type="number" tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={TICK_STYLE} stroke="var(--chart-axis)" />
                       <YAxis type="category" dataKey="label" tick={TICK_STYLE} stroke="var(--chart-axis)" width={40} />
-                      <Tooltip content={<CustomTooltip formatter={(v) => `${v.toFixed(1)}%`} />} />
+                      <Tooltip content={<CustomTooltip
+                        formatter={(v) => `${v.toFixed(1)}%`}
+                        labelFormatter={(l) => (l === 'All' ? 'All deciles' : `Decile ${l}`)}
+                      />} />
                       {categories.map((c) => (
                         <Bar key={c.key} dataKey={c.key} stackId="a" fill={c.color} name={c.label} />
                       ))}
@@ -418,7 +427,7 @@ export default function AggregateImpact({ triggered }: Props) {
             <h3 className="text-lg font-semibold text-gray-800 mb-3">
               Poverty impact ({selectedYear})
             </h3>
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
               We find no measurable impact on poverty from West Virginia&apos;s
               SB 392 income tax cut. Households below the poverty line generally
               have little or no state income tax liability, so a rate cut does
