@@ -168,13 +168,6 @@ export default function ExampleHouseholds({
                 West Virginia tax: {fmtCurrency(h.pre_cut.wv_income_tax)} →{' '}
                 {fmtCurrency(h.current_law.wv_income_tax)}
               </p>
-              <p
-                className={`text-xs mt-3 font-semibold uppercase tracking-[0.06em] ${
-                  isSelected ? 'text-primary-700' : 'text-primary-600'
-                }`}
-              >
-                {isSelected ? '✓ Loaded' : 'Click to load →'}
-              </p>
             </button>
           );
         })}
