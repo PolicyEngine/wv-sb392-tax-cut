@@ -114,30 +114,20 @@ export default function PolicyOverview() {
           </div>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h4 className="font-semibold text-gray-800 mb-2">
-              West Virginia individual income tax
+              Calculations
             </h4>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>
-                <a
-                  href="https://tax.wv.gov/Documents/PIT/2025/it140.PersonalIncomeTaxFormsAndInstructions.2025.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:underline"
-                >
-                  2025 IT-140 instructions and rate schedules
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/PolicyEngine/policyengine-us/pull/7919"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:underline"
-                >
-                  PolicyEngine-US PR #7919 (rate update)
-                </a>
-              </li>
-            </ul>
+            <p className="text-sm text-gray-700">
+              Powered by{' '}
+              <a
+                href="https://github.com/PolicyEngine/policyengine.py"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:underline"
+              >
+                policyengine
+              </a>{' '}
+              v4.3.1.
+            </p>
           </div>
         </div>
       </div>

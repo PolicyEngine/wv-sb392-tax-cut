@@ -35,25 +35,11 @@ PROFILES = [
         "dependents": [],
     },
     {
-        "label": "Single filer, $60k",
-        "income": 60_000,
-        "age_head": 35,
-        "married": False,
-        "dependents": [],
-    },
-    {
         "label": "Married couple, $80k, no kids",
         "income": 80_000,
         "age_head": 35,
         "married": True,
         "dependents": [],
-    },
-    {
-        "label": "Married couple, $100k, 2 kids",
-        "income": 100_000,
-        "age_head": 40,
-        "married": True,
-        "dependents": [8, 10],
     },
     {
         "label": "Married couple, $150k, 2 kids",
