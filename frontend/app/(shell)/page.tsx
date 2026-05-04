@@ -256,7 +256,7 @@ function HouseholdImpactTab() {
       <section className="bg-gray-50 rounded-xl p-6 md:p-8 border border-gray-200 shadow-sm">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Your household</h2>
 
-        {/* Row 1: Income, Age, Marital status */}
+        {/* Row 1: Income, Ages (head + spouse), Marital status */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
           {/* Employment income */}
           <div>
@@ -274,43 +274,45 @@ function HouseholdImpactTab() {
             </div>
           </div>
 
-          {/* Age + spouse age (renders directly below when married) */}
+          {/* Ages (head + spouse when married) */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">Your age</label>
-            <input
-              type="number"
-              value={ageHeadRaw}
-              onChange={(e) => setAgeHeadRaw(e.target.value)}
-              onBlur={() => {
-                const clamped = Math.max(18, Math.min(100, parseInt(ageHeadRaw) || 18));
-                setAgeHead(clamped);
-                setAgeHeadRaw(String(clamped));
-              }}
-              min={18}
-              max={100}
-              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-            />
-            {married && (
-              <div className="mt-3">
-                <label className="block text-sm font-medium text-gray-600 mb-1.5">
-                  Spouse&apos;s age
-                </label>
+            <div className={married ? 'grid grid-cols-2 gap-3' : ''}>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">Your age</label>
                 <input
                   type="number"
-                  value={ageSpouseRaw}
-                  onChange={(e) => setAgeSpouseRaw(e.target.value)}
+                  value={ageHeadRaw}
+                  onChange={(e) => setAgeHeadRaw(e.target.value)}
                   onBlur={() => {
-                    const clamped = Math.max(18, Math.min(100, parseInt(ageSpouseRaw) || 18));
-                    setAgeSpouse(clamped);
-                    setAgeSpouseRaw(String(clamped));
+                    const clamped = Math.max(18, Math.min(100, parseInt(ageHeadRaw) || 18));
+                    setAgeHead(clamped);
+                    setAgeHeadRaw(String(clamped));
                   }}
                   min={18}
                   max={100}
-                  aria-label="Spouse age"
                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 />
               </div>
-            )}
+              {married && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1.5">Spouse age</label>
+                  <input
+                    type="number"
+                    value={ageSpouseRaw}
+                    onChange={(e) => setAgeSpouseRaw(e.target.value)}
+                    onBlur={() => {
+                      const clamped = Math.max(18, Math.min(100, parseInt(ageSpouseRaw) || 18));
+                      setAgeSpouse(clamped);
+                      setAgeSpouseRaw(String(clamped));
+                    }}
+                    min={18}
+                    max={100}
+                    aria-label="Spouse age"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Marital status */}
