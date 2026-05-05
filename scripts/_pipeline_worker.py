@@ -32,11 +32,11 @@ def _convert_for_json(obj):
 
 def main():
     year = int(sys.argv[1])
-    from ut_tax_calc.microsimulation import calculate_aggregate_impact
+    from wv_tax_cut.microsimulation import calculate_aggregate_impact
 
-    print(f"  Computing Utah 2026 tax changes for {year}...", file=sys.stderr)
+    print(f"  Computing WV SB 392 tax cut for {year}...", file=sys.stderr)
     result = calculate_aggregate_impact(year=year)
-    print(f"  Done: Utah 2026 tax changes {year}", file=sys.stderr)
+    print(f"  Done: WV SB 392 tax cut {year}", file=sys.stderr)
 
     # Output JSON to stdout
     json.dump(_convert_for_json(result), sys.stdout)

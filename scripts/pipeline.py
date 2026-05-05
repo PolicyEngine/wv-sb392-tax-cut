@@ -1,7 +1,7 @@
-"""Data generation pipeline for the Utah 2026 tax changes dashboard.
+"""Data generation pipeline for the WV SB 392 dashboard.
 
-Runs the ut_tax_calc microsimulation for tax year 2026 against the
-Utah state dataset and saves output to frontend/public/data/ as CSVs.
+Runs the wv_tax_cut microsimulation for tax year 2026 against the
+West Virginia state dataset and saves output to frontend/public/data/ as CSVs.
 
 Uses subprocess isolation per year to prevent memory accumulation
 (kept from the upstream template even though only one year is run).
@@ -27,7 +27,7 @@ DEFAULT_OUTPUT_DIR = os.path.join(
     "data",
 )
 
-# Utah 2026 tax changes only take effect in 2026 — no budget-window sweep.
+# The WV SB 392 cut takes effect in 2026 — no budget-window sweep.
 YEARS = [2026]
 
 
@@ -181,10 +181,10 @@ def generate_all_data(output_dir: str = None) -> dict[str, pd.DataFrame]:
     os.makedirs(output_dir, exist_ok=True)
 
     paths = {
-        "distributional_impact": os.path.join(output_dir, "distributional_impact.csv"),
-        "metrics": os.path.join(output_dir, "metrics.csv"),
-        "winners_losers": os.path.join(output_dir, "winners_losers.csv"),
-        "income_brackets": os.path.join(output_dir, "income_brackets.csv"),
+        "distributional_impact": os.path.join(output_dir, "distributional_impact_revert.csv"),
+        "metrics": os.path.join(output_dir, "metrics_revert.csv"),
+        "winners_losers": os.path.join(output_dir, "winners_losers_revert.csv"),
+        "income_brackets": os.path.join(output_dir, "income_brackets_revert.csv"),
     }
 
     # Check which years are already computed

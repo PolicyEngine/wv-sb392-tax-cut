@@ -1,10 +1,4 @@
-"""
-Tests for the precomputed CSV data files.
-
-These tests verify that the CSV files have the correct structure and
-can be parsed by the frontend. Only tax year 2026 is meaningful for the
-Utah 2026 tax changes dashboard.
-"""
+"""Tests for the precomputed WV SB 392 CSV data files."""
 
 import csv
 from pathlib import Path
@@ -13,6 +7,7 @@ import pytest
 
 
 DATA_DIR = Path(__file__).parent.parent / "frontend" / "public" / "data"
+VARIANT = "revert"
 EXPECTED_YEARS = [2026]
 EXPECTED_BRACKETS = {
     "$0 - $25k",
@@ -26,13 +21,11 @@ EXPECTED_BRACKETS = {
 
 
 class TestDistributionalImpactCSV:
-    """Tests for distributional_impact.csv."""
+    """Tests for distributional_impact_revert.csv."""
 
     @pytest.fixture
     def data(self):
-        filepath = DATA_DIR / "distributional_impact.csv"
-        if not filepath.exists():
-            pytest.skip("distributional_impact.csv not generated yet")
+        filepath = DATA_DIR / f"distributional_impact_{VARIANT}.csv"
         with open(filepath, "r") as f:
             return list(csv.DictReader(f))
 
@@ -57,13 +50,11 @@ class TestDistributionalImpactCSV:
 
 
 class TestMetricsCSV:
-    """Tests for metrics.csv."""
+    """Tests for metrics_revert.csv."""
 
     @pytest.fixture
     def data(self):
-        filepath = DATA_DIR / "metrics.csv"
-        if not filepath.exists():
-            pytest.skip("metrics.csv not generated yet")
+        filepath = DATA_DIR / f"metrics_{VARIANT}.csv"
         with open(filepath, "r") as f:
             return list(csv.DictReader(f))
 
@@ -92,7 +83,7 @@ class TestMetricsCSV:
                 )
 
     def test_state_tax_revenue_impact_is_negative(self, data):
-        """SB60 + HB290 reduce Utah revenue; impact = current - reverted < 0."""
+        """SB 392 reduces WV revenue; impact = current law - pre-cut < 0."""
         for year in EXPECTED_YEARS:
             rows = [
                 r for r in data
@@ -106,15 +97,25 @@ class TestMetricsCSV:
                 f"got {value}"
             )
 
+    def test_avg_benefit_matches_total_cost_per_beneficiary(self, data):
+        for year in EXPECTED_YEARS:
+            metrics = {
+                r["metric"]: float(r["value"])
+                for r in data
+                if int(r["year"]) == year
+            }
+            implied = metrics["total_cost"] / metrics["beneficiaries"]
+            assert abs(metrics["avg_benefit"] - implied) < 1, (
+                "avg_benefit should be approximately total_cost / beneficiaries"
+            )
+
 
 class TestWinnersLosersCSV:
     """Tests for winners_losers.csv."""
 
     @pytest.fixture
     def data(self):
-        filepath = DATA_DIR / "winners_losers.csv"
-        if not filepath.exists():
-            pytest.skip("winners_losers.csv not generated yet")
+        filepath = DATA_DIR / f"winners_losers_{VARIANT}.csv"
         with open(filepath, "r") as f:
             return list(csv.DictReader(f))
 
@@ -152,9 +153,7 @@ class TestIncomeBracketsCSV:
 
     @pytest.fixture
     def data(self):
-        filepath = DATA_DIR / "income_brackets.csv"
-        if not filepath.exists():
-            pytest.skip("income_brackets.csv not generated yet")
+        filepath = DATA_DIR / f"income_brackets_{VARIANT}.csv"
         with open(filepath, "r") as f:
             return list(csv.DictReader(f))
 
@@ -174,13 +173,11 @@ class TestIncomeBracketsCSV:
 
 
 class TestCongressionalDistrictsCSV:
-    """Tests for congressional_districts.csv (Utah only)."""
+    """Tests for congressional_districts_revert.csv (West Virginia only)."""
 
     @pytest.fixture
     def data(self):
-        filepath = DATA_DIR / "congressional_districts.csv"
-        if not filepath.exists():
-            pytest.skip("congressional_districts.csv not generated yet")
+        filepath = DATA_DIR / f"congressional_districts_{VARIANT}.csv"
         with open(filepath, "r") as f:
             return list(csv.DictReader(f))
 
@@ -196,15 +193,15 @@ class TestCongressionalDistrictsCSV:
             for col in required:
                 assert col in row, f"Missing column: {col}"
 
-    def test_utah_only(self, data):
-        """All rows must be Utah districts."""
+    def test_west_virginia_only(self, data):
+        """All rows must be West Virginia districts."""
         states = {r["state"] for r in data}
-        assert states == {"UT"}, f"Expected only UT rows, got {states}"
+        assert states == {"WV"}, f"Expected only WV rows, got {states}"
 
-    def test_four_districts(self, data):
-        """Utah has 4 congressional districts."""
+    def test_two_districts(self, data):
+        """West Virginia has 2 congressional districts."""
         districts = {r["district"] for r in data}
-        expected = {f"UT-0{d}" for d in range(1, 5)}
+        expected = {"WV-01", "WV-02"}
         assert districts == expected, (
-            f"Expected Utah districts UT-01..UT-04, got {districts}"
+            f"Expected West Virginia districts WV-01..WV-02, got {districts}"
         )

@@ -1,7 +1,7 @@
 [project]
-name = "utah-2026-tax-changes"
+name = "wv-sb392-tax-cut"
 version = "1.0.0"
-description = "Utah 2026 tax changes calculator and data pipeline (SB60 rate reduction and HB290 CTC expansion)"
+description = "West Virginia SB 392 income tax cut dashboard and data pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -26,4 +26,4 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ut_tax_calc"]
+packages = ["wv_tax_cut"]

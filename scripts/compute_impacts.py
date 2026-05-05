@@ -1,26 +1,26 @@
 """
-Compute Utah-wide impacts for the 2026 Utah tax changes.
+Compute West Virginia-wide impacts for the 2026 SB 392 income tax cut.
 Outputs CSV files for the dashboard.
 
-Uses the ut_tax_calc module which loads the pre-2026-values inverse reform
-and runs Microsimulation against the Utah state dataset.
+Uses the wv_tax_cut module, which loads the pre-cut-rate inverse reform
+and runs Microsimulation against the West Virginia state dataset.
 """
 
 import sys
 import os
 
-# Add parent directory to path so we can import ut_tax_calc
+# Add parent directory to path so we can import wv_tax_cut.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from ut_tax_calc.microsimulation import calculate_aggregate_impact
+from wv_tax_cut.microsimulation import calculate_aggregate_impact
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "frontend", "public", "data"
 )
 
-# Only 2026 is meaningful for the Utah 2026 tax changes.
+# Only 2026 is meaningful for the WV SB 392 cut.
 YEARS = [2026]
 
 
@@ -129,10 +129,10 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    pd.DataFrame(all_metrics).to_csv(f"{OUTPUT_DIR}/metrics.csv", index=False)
-    pd.DataFrame(all_distributional).to_csv(f"{OUTPUT_DIR}/distributional_impact.csv", index=False)
-    pd.DataFrame(all_winners_losers).to_csv(f"{OUTPUT_DIR}/winners_losers.csv", index=False)
-    pd.DataFrame(all_income_brackets).to_csv(f"{OUTPUT_DIR}/income_brackets.csv", index=False)
+    pd.DataFrame(all_metrics).to_csv(f"{OUTPUT_DIR}/metrics_revert.csv", index=False)
+    pd.DataFrame(all_distributional).to_csv(f"{OUTPUT_DIR}/distributional_impact_revert.csv", index=False)
+    pd.DataFrame(all_winners_losers).to_csv(f"{OUTPUT_DIR}/winners_losers_revert.csv", index=False)
+    pd.DataFrame(all_income_brackets).to_csv(f"{OUTPUT_DIR}/income_brackets_revert.csv", index=False)
 
     print(f"\nCSV files written to {OUTPUT_DIR}/")
 

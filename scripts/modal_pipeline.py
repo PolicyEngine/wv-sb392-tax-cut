@@ -150,17 +150,22 @@ def calculate() -> dict:
         "household_net_income", period=YEAR, map_to="household"
     )
     income_change = reform_net_income - baseline_net_income
+    change_arr = np.array(income_change)
+    baseline_net_income_arr = np.array(baseline_net_income)
+    household_weight = sim_reform.calculate("household_weight", period=YEAR)
+    weight_arr = np.array(household_weight)
 
-    total_households = float((income_change * 0 + 1).sum())
-    winners = float((income_change > 1).sum())
-    losers = float((income_change < -1).sum())
-    beneficiaries = float((income_change > 0).sum())
-
-    affected = abs(income_change) > 1
-    affected_count = float(affected.sum())
+    total_households = float(weight_arr.sum())
+    winners = float(weight_arr[change_arr > 1].sum())
+    losers = float(weight_arr[change_arr < -1].sum())
+    beneficiary_mask = change_arr > 0
+    beneficiaries = float(weight_arr[beneficiary_mask].sum())
     avg_benefit = (
-        float(income_change[affected].sum() / affected.sum())
-        if affected_count > 0
+        float(
+            (change_arr[beneficiary_mask] * weight_arr[beneficiary_mask]).sum()
+            / beneficiaries
+        )
+        if beneficiaries > 0
         else 0.0
     )
     winners_rate = winners / total_households * 100 if total_households else 0.0
@@ -174,10 +179,13 @@ def calculate() -> dict:
     decile_relative = {}
     for d in range(1, 11):
         dmask = decile == d
-        d_count = float(dmask.sum())
+        d_weight = weight_arr[dmask]
+        d_count = float(d_weight.sum())
         if d_count > 0:
-            d_baseline_sum = float(baseline_net_income[dmask].sum())
-            d_change_sum = float(income_change[dmask].sum())
+            d_baseline_sum = float(
+                (baseline_net_income_arr[dmask] * d_weight).sum()
+            )
+            d_change_sum = float((change_arr[dmask] * d_weight).sum())
             decile_average[str(d)] = d_change_sum / d_count
             decile_relative[str(d)] = (
                 d_change_sum / d_baseline_sum if d_baseline_sum != 0 else 0.0
@@ -186,7 +194,6 @@ def calculate() -> dict:
             decile_average[str(d)] = 0.0
             decile_relative[str(d)] = 0.0
 
-    household_weight = sim_reform.calculate("household_weight", period=YEAR)
     people_per_hh = sim_baseline.calculate(
         "household_count_people", period=YEAR, map_to="household"
     )
@@ -194,7 +201,6 @@ def calculate() -> dict:
     rel_change_arr = np.array(income_change) / capped_baseline
 
     decile_arr = np.array(decile)
-    weight_arr = np.array(household_weight)
     people_weighted = np.array(people_per_hh) * weight_arr
 
     intra_decile_deciles = {label: [] for label in intra_labels}
@@ -285,8 +291,7 @@ def calculate() -> dict:
         "adjusted_gross_income", period=YEAR, map_to="household"
     )
     agi_arr = np.array(agi)
-    change_arr = np.array(income_change)
-    affected_mask = np.abs(change_arr) > 1
+    beneficiary_mask = change_arr > 0
 
     income_brackets = [
         (0, 25_000, "$0 - $25k"),
@@ -299,9 +304,9 @@ def calculate() -> dict:
     ]
     by_income_bracket = []
     for min_inc, max_inc, label in income_brackets:
-        mask = (agi_arr >= min_inc) & (agi_arr < max_inc) & affected_mask
-        bracket_affected = float(weight_arr[mask].sum())
-        if bracket_affected > 0:
+        mask = (agi_arr >= min_inc) & (agi_arr < max_inc) & beneficiary_mask
+        bracket_beneficiaries = float(weight_arr[mask].sum())
+        if bracket_beneficiaries > 0:
             bracket_cost = float((change_arr[mask] * weight_arr[mask]).sum())
             bracket_avg = float(np.average(change_arr[mask], weights=weight_arr[mask]))
         else:
@@ -309,7 +314,7 @@ def calculate() -> dict:
             bracket_avg = 0.0
         by_income_bracket.append({
             "bracket": label,
-            "beneficiaries": bracket_affected,
+            "beneficiaries": bracket_beneficiaries,
             "total_cost": bracket_cost,
             "avg_benefit": bracket_avg,
         })

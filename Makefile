@@ -2,7 +2,7 @@
 .PHONY: build test lint clean install
 .PHONY: pipeline pipeline-districts
 
-# Python module: ut_tax_calc (Utah 2026 tax changes)
+# Python module: wv_tax_cut (West Virginia SB 392 income tax cut)
 
 # Port selection helper - finds the first available port in 4000-4100
 define find_port
@@ -37,10 +37,10 @@ clean:
 	cd frontend && if exist .next rmdir /s /q .next
 	cd frontend && if exist node_modules rmdir /s /q node_modules
 
-# Regenerate aggregate data from the ut_tax_calc microsimulation
+# Regenerate aggregate data from the local microsimulation helper
 pipeline:
 	python scripts/pipeline.py
 
-# Regenerate Utah congressional-district CSV (placeholder version)
+# Regenerate placeholder West Virginia congressional-district CSV
 pipeline-districts:
 	python scripts/generate_district_csv.py
