@@ -8,7 +8,6 @@ export default function ShellLayout({
 }) {
   return (
     <>
-      <Header />
       {children}
       <Footer />
     </>
