@@ -7,4 +7,4 @@ households, statewide revenue, and the state's two congressional districts.
 - **Modal pipelines**: `scripts/modal_pipeline.py` (statewide), `scripts/modal_district_pipeline.py` (per-district)
 - **Pre-computed CSVs**: `frontend/public/data/*.csv`
 
-Live: <https://wv-sb392-tax-cut.vercel.app/us/wv-sb392-tax-cut>
+Live: <https://policyengine.org/us/wv-sb392-tax-cut>
