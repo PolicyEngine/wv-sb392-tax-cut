@@ -1,5 +1,5 @@
 /**
- * Build a PolicyEngine household situation for the PE API.
+ * Build a PolicyEngine household situation for a household calculation.
  *
  * For the WV SB 392 tax-cut dashboard:
  * - PolicyEngine baseline already reflects the SB 392 cut (post-cut rates).
@@ -141,7 +141,7 @@ export function buildHouseholdSituation(
 }
 
 /**
- * Build the revert policy dict for the PE API. Used by the household
+ * Build the revert policy's parameter changes. Used by the household
  * calculator as the *baseline*: applying it rolls WV's 2026 rates back to
  * 2025 values, so impact = current_law - revert isolates the SB 392 cut.
  */
