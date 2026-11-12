@@ -24,11 +24,15 @@ interface Props {
    * of firing a live /us/calculate request. */
   precomputed?: HouseholdImpactResponse | null;
   /**
-   * Told which household's answer is shown, so the page can highlight its
-   * chart range: after a refusal for the firewall's limit, that is the
-   * household shown before, calculated or an example, not the refused one.
+   * Told which household's answer is shown, and the answer, so the page can
+   * highlight its chart range and, for an example, its card: after a
+   * refusal for the firewall's limit, that is the answer shown before,
+   * calculated or an example's, not the refused household's.
    */
-  onShownRequestChange?: (request: HouseholdRequest | null) => void;
+  onShownRequestChange?: (
+    request: HouseholdRequest | null,
+    answer: HouseholdImpactResponse | undefined
+  ) => void;
 }
 
 export default function ImpactAnalysis({
@@ -43,8 +47,8 @@ export default function ImpactAnalysis({
   const { data, isLoading, error, shownRequest, rateLimitNotice } =
     useHouseholdImpact(request, triggered, precomputed ?? null);
   useEffect(() => {
-    onShownRequestChange?.(shownRequest);
-  }, [onShownRequestChange, shownRequest]);
+    onShownRequestChange?.(shownRequest, data);
+  }, [onShownRequestChange, shownRequest, data]);
 
   if (!triggered) return null;
 

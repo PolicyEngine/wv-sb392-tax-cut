@@ -108,6 +108,15 @@ export default function Home() {
   );
 }
 
+/** An example household chosen from its card. */
+interface ChosenExample {
+  /** The card's label. */
+  label: string;
+  request: HouseholdRequest;
+  /** Its precomputed answer: the object its card made. */
+  answer: HouseholdImpactResponse;
+}
+
 /** Household impact tab */
 function HouseholdImpactTab() {
   const queryClient = useQueryClient();
@@ -142,23 +151,39 @@ function HouseholdImpactTab() {
   // for a minute: everyone on the network shares the limit.
   const calculationPauseSeconds = useHouseholdCalculationPause();
   const calculationsPaused = calculationPauseSeconds > 0;
-  // The highlighted chart range follows the answer on screen.
-  const showShownRange = useCallback((request: HouseholdRequest | null) => {
-    if (request !== null) {
-      setMaxEarnings(request.max_earnings);
-    }
-  }, []);
+  // The answer on screen, as ImpactAnalysis reports it. The highlighted
+  // chart range follows it.
+  const [shownAnswer, setShownAnswer] = useState<HouseholdImpactResponse | undefined>(
+    undefined
+  );
+  const showShownAnswer = useCallback(
+    (request: HouseholdRequest | null, answer: HouseholdImpactResponse | undefined) => {
+      if (request !== null) {
+        setMaxEarnings(request.max_earnings);
+      }
+      setShownAnswer(answer);
+    },
+    []
+  );
   const impactRef = useRef<HTMLDivElement | null>(null);
   const [precomputedImpact, setPrecomputedImpact] =
     useState<HouseholdImpactResponse | null>(null);
-  const [selectedExampleLabel, setSelectedExampleLabel] = useState<string | null>(null);
+  const [chosenExample, setChosenExample] = useState<ChosenExample | null>(null);
+  // The example whose results are on screen: the one chosen, or, after a
+  // refusal, the one shown before. Its answer is the object its card made,
+  // so its results are on screen exactly while that object is shown. Its
+  // card is highlighted while they are.
+  const shownExample =
+    chosenExample !== null && shownAnswer === chosenExample.answer
+      ? chosenExample
+      : null;
 
-  // Scroll the net-income chart into view whenever an example loads.
+  // Scroll the net-income chart into view whenever an example is chosen.
   useEffect(() => {
-    if (selectedExampleLabel && impactRef.current) {
+    if (chosenExample && impactRef.current) {
       impactRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [selectedExampleLabel]);
+  }, [chosenExample]);
 
   // Listen for hash changes to update form values
   useEffect(() => {
@@ -227,9 +252,9 @@ function HouseholdImpactTab() {
     }
     setTriggered(true);
     // Manual recompute clears any active precomputed example so the
-    // chart goes back to fetching live numbers.
+    // chart goes back to fetching live numbers. Its card stays highlighted
+    // only if a refusal keeps its results on screen.
     setPrecomputedImpact(null);
-    setSelectedExampleLabel(null);
   };
 
   /** Click handler from ExampleHouseholds. Updates the form fields to
@@ -239,7 +264,6 @@ function HouseholdImpactTab() {
     profile: ExampleHouseholdProfile,
     response: HouseholdImpactResponse,
   ) => {
-    setSelectedExampleLabel(profile.label);
     setIncome(profile.income);
     setAgeHead(profile.age_head);
     setAgeHeadRaw(String(profile.age_head));
@@ -250,7 +274,7 @@ function HouseholdImpactTab() {
     setStateCode('WV');
     const exampleMaxEarnings = response.x_axis_max ?? maxEarnings;
     setMaxEarnings(exampleMaxEarnings);
-    setSubmittedRequest({
+    const exampleRequest: HouseholdRequest = {
       age_head: profile.age_head,
       age_spouse: profile.married ? 35 : null,
       dependent_ages: profile.dependents,
@@ -258,7 +282,9 @@ function HouseholdImpactTab() {
       year: 2026,
       max_earnings: exampleMaxEarnings,
       state_code: 'WV',
-    });
+    };
+    setChosenExample({ label: profile.label, request: exampleRequest, answer: response });
+    setSubmittedRequest(exampleRequest);
     setPrecomputedImpact(response);
     setTriggered(true);
   };
@@ -270,7 +296,7 @@ function HouseholdImpactTab() {
           values (no live API call). */}
       <ExampleHouseholds
         onSelect={handleSelectExample}
-        selectedLabel={selectedExampleLabel}
+        selectedLabel={shownExample?.label ?? null}
       />
 
       {/* Inline household config */}
@@ -408,9 +434,11 @@ function HouseholdImpactTab() {
               : 'Calculate impact'}
           </button>
           {calculationsPaused && (
-            <p role="status" className="mt-3 text-sm text-amber-800">
-              {SHARED_LIMIT_EXPLANATION}. This page can calculate again in{' '}
-              {calculationPauseSeconds} s.
+            <p className="mt-3 text-sm text-amber-800">
+              {/* Only the explanation is announced; the countdown changes
+                  every second. */}
+              <span role="status">{SHARED_LIMIT_EXPLANATION}.</span> This page
+              can calculate again in {calculationPauseSeconds} s.
             </p>
           )}
         </div>
@@ -425,14 +453,22 @@ function HouseholdImpactTab() {
               key={v}
               disabled={calculationsPaused}
               onClick={() => {
+                // An example's results on screen, chosen or kept after a
+                // refusal, are drawn again on the new range without
+                // calculating; otherwise the submitted household is
+                // calculated on it.
+                const household = shownExample?.request ?? submittedRequest;
                 if (
-                  submittedRequest === null ||
+                  household === null ||
                   submitHouseholdRequest(
                     queryClient,
-                    { ...submittedRequest, max_earnings: v },
+                    { ...household, max_earnings: v },
                     setSubmittedRequest
                   )
                 ) {
+                  if (shownExample !== null) {
+                    setPrecomputedImpact(shownExample.answer);
+                  }
                   setMaxEarnings(v);
                 }
               }}
@@ -456,7 +492,7 @@ function HouseholdImpactTab() {
             triggered={triggered}
             maxEarnings={maxEarnings}
             precomputed={precomputedImpact}
-            onShownRequestChange={showShownRange}
+            onShownRequestChange={showShownAnswer}
           />
         </div>
       )}

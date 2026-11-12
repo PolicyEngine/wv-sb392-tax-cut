@@ -212,6 +212,35 @@ export function householdImpactToShow(
   };
 }
 
+/** How a render of the results area changes the record of the shown answer. */
+export type ShownHouseholdRecordChange =
+  | { action: "remember"; request: HouseholdRequest }
+  | { action: "forget" }
+  | { action: "keep" };
+
+/**
+ * A household whose own answer is shown, calculated now, kept, or an
+ * example's precomputed answer, is recorded. A failure other than a
+ * refusal forgets the record, so a later refusal does not bring back an
+ * older answer that was no longer on screen. Loading, and a refusal (which
+ * shows the recorded answer), leave the record as it is.
+ */
+export function shownHouseholdRecordAfter(
+  request: HouseholdRequest | null,
+  current: { data: HouseholdImpactResponse | undefined; error: Error | null }
+): ShownHouseholdRecordChange {
+  if (current.data !== undefined && request !== null) {
+    return { action: "remember", request };
+  }
+  if (
+    current.error !== null &&
+    !(current.error instanceof HouseholdCalculationError && current.error.rateLimited)
+  ) {
+    return { action: "forget" };
+  }
+  return { action: "keep" };
+}
+
 /**
  * What the results area shows for `request`: `precomputed`, an example
  * household's answer, when given, without calculating; otherwise the
@@ -226,13 +255,30 @@ export function useHouseholdImpact(
   const query = useQuery(
     householdImpactQueryOptions(request, enabled && precomputed === null)
   );
+  // An example's precomputed answer is its own answer.
   const shownData = precomputed ?? query.data;
+  const shownError = precomputed === null ? query.error : null;
   useEffect(() => {
-    // The page now shows this household's own answer, or the example's.
-    if (shownData !== undefined && request !== null) {
-      rememberShownHouseholdRequest(queryClient, request, precomputed);
+    if (!enabled) {
+      return;
     }
-  }, [queryClient, request, shownData, precomputed]);
+    const change = shownHouseholdRecordAfter(request, {
+      data: shownData,
+      error: shownError,
+    });
+    if (change.action === "remember") {
+      rememberShownHouseholdRequest(queryClient, change.request, precomputed);
+    } else if (change.action === "forget") {
+      rememberShownHouseholdRequest(queryClient, null);
+    }
+  }, [queryClient, enabled, request, shownData, shownError, precomputed]);
+  useEffect(
+    // Removing the results area, as leaving the household tab does, takes
+    // its answer off the screen: when it is shown again it starts empty,
+    // so a refusal then shows the refusal itself.
+    () => () => rememberShownHouseholdRequest(queryClient, null),
+    [queryClient]
+  );
   if (precomputed !== null) {
     return {
       data: precomputed,
