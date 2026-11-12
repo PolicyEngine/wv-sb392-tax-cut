@@ -11,6 +11,7 @@ import {
   submitHouseholdRequest,
   useHouseholdCalculationPause,
 } from '@/hooks/useHouseholdImpact';
+import { SHARED_LIMIT_EXPLANATION } from '@/lib/api';
 import type { HouseholdImpactResponse, HouseholdRequest } from '@/lib/types';
 import { parseHashParams } from '@/lib/embedding';
 
@@ -141,6 +142,12 @@ function HouseholdImpactTab() {
   // for a minute: everyone on the network shares the limit.
   const calculationPauseSeconds = useHouseholdCalculationPause();
   const calculationsPaused = calculationPauseSeconds > 0;
+  // The highlighted chart range follows the answer on screen.
+  const showShownRange = useCallback((request: HouseholdRequest | null) => {
+    if (request !== null) {
+      setMaxEarnings(request.max_earnings);
+    }
+  }, []);
   const impactRef = useRef<HTMLDivElement | null>(null);
   const [precomputedImpact, setPrecomputedImpact] =
     useState<HouseholdImpactResponse | null>(null);
@@ -400,6 +407,12 @@ function HouseholdImpactTab() {
               ? `Calculate again in ${calculationPauseSeconds} s`
               : 'Calculate impact'}
           </button>
+          {calculationsPaused && (
+            <p role="status" className="mt-3 text-sm text-amber-800">
+              {SHARED_LIMIT_EXPLANATION}. This page can calculate again in{' '}
+              {calculationPauseSeconds} s.
+            </p>
+          )}
         </div>
       </section>
 
@@ -412,13 +425,15 @@ function HouseholdImpactTab() {
               key={v}
               disabled={calculationsPaused}
               onClick={() => {
-                setMaxEarnings(v);
-                if (submittedRequest) {
+                if (
+                  submittedRequest === null ||
                   submitHouseholdRequest(
                     queryClient,
                     { ...submittedRequest, max_earnings: v },
                     setSubmittedRequest
-                  );
+                  )
+                ) {
+                  setMaxEarnings(v);
                 }
               }}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
@@ -441,6 +456,7 @@ function HouseholdImpactTab() {
             triggered={triggered}
             maxEarnings={maxEarnings}
             precomputed={precomputedImpact}
+            onShownRequestChange={showShownRange}
           />
         </div>
       )}

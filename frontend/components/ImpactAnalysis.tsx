@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { useEffect } from 'react';
 import { useHouseholdImpact } from '@/hooks/useHouseholdImpact';
 import type { HouseholdImpactResponse, HouseholdRequest } from '@/lib/types';
 import ChartWatermark from './ChartWatermark';
@@ -22,6 +23,12 @@ interface Props {
   /** When supplied, the chart renders this precomputed payload instead
    * of firing a live /us/calculate request. */
   precomputed?: HouseholdImpactResponse | null;
+  /**
+   * Told which household's answer is shown, so the page can highlight its
+   * chart range: after a refusal for the firewall's limit, that is the
+   * household shown before, calculated or an example, not the refused one.
+   */
+  onShownRequestChange?: (request: HouseholdRequest | null) => void;
 }
 
 export default function ImpactAnalysis({
@@ -29,19 +36,15 @@ export default function ImpactAnalysis({
   triggered,
   maxEarnings,
   precomputed,
+  onShownRequestChange,
 }: Props) {
-  // Skip the live fetch when precomputed data is supplied.
-  const liveQuery = useHouseholdImpact(
-    request,
-    triggered && !precomputed,
-  );
-  const data = precomputed ?? liveQuery.data;
-  const isLoading = !precomputed && liveQuery.isLoading;
-  const error = precomputed ? null : liveQuery.error;
-  // A precomputed example is for the submitted household. After a
-  // rate-limit refusal, the live answer is the last household's.
-  const shownRequest = precomputed ? request : liveQuery.shownRequest;
-  const rateLimitNotice = precomputed ? null : liveQuery.rateLimitNotice;
+  // A precomputed example is shown without a live calculation. After a
+  // rate-limit refusal, the answer shown before stays, with its household.
+  const { data, isLoading, error, shownRequest, rateLimitNotice } =
+    useHouseholdImpact(request, triggered, precomputed ?? null);
+  useEffect(() => {
+    onShownRequestChange?.(shownRequest);
+  }, [onShownRequestChange, shownRequest]);
 
   if (!triggered) return null;
 
@@ -96,7 +99,8 @@ export default function ImpactAnalysis({
   const stateTaxChangePoint = benefitData.state_tax_change;
   const netIncomeChangePoint = benefitData.net_income_change;
 
-  const xMax = maxEarnings ?? data.x_axis_max;
+  // The range the shown answer was calculated for.
+  const xMax = shownRequest?.max_earnings ?? maxEarnings ?? data.x_axis_max;
 
   // Build chart data. Keep single net-income-change line, but enrich each
   // point with the per-component deltas so the tooltip can show all three.
@@ -192,7 +196,7 @@ export default function ImpactAnalysis({
       {rateLimitNotice && (
         <div role="status" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900">
           <p>{rateLimitNotice}</p>
-          <p className="mt-1 text-sm">The results below are for the last household calculated.</p>
+          <p className="mt-1 text-sm">The results below are for the household shown before.</p>
         </div>
       )}
       <h2 className="text-2xl font-bold text-primary">Impact analysis</h2>
