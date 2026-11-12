@@ -185,7 +185,7 @@ describe("calculateHouseholdImpact", () => {
     });
   });
 
-  it("asks the user to wait when no answer could be read", async () => {
+  it("explains the shared limit when no answer could be read", async () => {
     // A page on another origin cannot read the firewall's 429, which has no
     // CORS headers: the browser reports a network failure instead.
     vi.stubGlobal(
@@ -257,6 +257,20 @@ describe("calculateHouseholdImpact", () => {
     await calculationFailure();
 
     expect(householdCalculationPauseRemaining()).toBe(0);
+  });
+
+  it("says a calculation held back during a pause may have met the limit", async () => {
+    // The pause may have started from a request with no answer, which
+    // only may have met the limit.
+    stubFetch(() => okAnswer(calculatedHousehold([0], [0], [0], [0])));
+    pauseHouseholdCalculations();
+
+    expect(await calculationFailure()).toMatchObject({
+      message:
+        "Everyone on your network, such as a workshop or an office, shares " +
+        "a limit on calculations a minute, which may have been reached.",
+      rateLimited: true,
+    });
   });
 
   it("sends no household calculation while calculations are paused", async () => {

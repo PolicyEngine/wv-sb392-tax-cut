@@ -1,13 +1,17 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Home from '../app/(shell)/page';
-import { pauseHouseholdCalculations } from '../hooks/useHouseholdImpact';
+import {
+  pauseHouseholdCalculations,
+  rememberShownHouseholdRequest,
+} from '../hooks/useHouseholdImpact';
 
-// Without a measured size Recharts draws nothing, so the chart parts draw
-// nothing here; these tests read the page's text and buttons.
+// Without a measured size Recharts draws nothing, so the x-axis becomes an
+// element that shows its range and the other chart parts draw nothing;
+// these tests read the page's text and buttons.
 vi.mock('recharts', async () => {
   const actual = await vi.importActual<typeof import('recharts')>('recharts');
   const drawsNothing = () => null;
@@ -19,7 +23,9 @@ vi.mock('recharts', async () => {
     LineChart: ({ children }: { children: ReactNode }) => (
       <div data-testid="line-chart">{children}</div>
     ),
-    XAxis: drawsNothing,
+    XAxis: ({ domain }: { domain: unknown }) => (
+      <div data-testid="x-axis" data-domain={JSON.stringify(domain)} />
+    ),
     YAxis: drawsNothing,
     CartesianGrid: drawsNothing,
     Tooltip: drawsNothing,
@@ -98,9 +104,12 @@ function tooManyRequests(): Response {
 
 /**
  * Serves the example households, and answers each household calculation
- * with `answerCalculation`.
+ * with `answerCalculation`. Returns the calculations it receives.
  */
-function stubFetch(answerCalculation: (revertsCut: boolean) => Response): void {
+function stubFetch(
+  answerCalculation: (revertsCut: boolean) => Response,
+): unknown[] {
+  const calculations: unknown[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -110,11 +119,35 @@ function stubFetch(answerCalculation: (revertsCut: boolean) => Response): void {
       }
       if (url === DASHBOARD_API_CALCULATE_URL) {
         const body = JSON.parse(String(init.body)) as { policy?: unknown };
+        calculations.push(body);
         return answerCalculation(body.policy !== undefined);
       }
       throw new Error(`Unexpected request to ${url}`);
     }),
   );
+  return calculations;
+}
+
+function calculatedAnswer(revertsCut: boolean): Response {
+  return jsonResponse(200, {
+    status: 'ok',
+    message: null,
+    result: calculatedHousehold(revertsCut),
+  });
+}
+
+/** Chooses the example household, then calculates it at $90,000. */
+async function calculateExampleAtHigherIncome(): Promise<HTMLElement> {
+  const exampleCard = await screen.findByRole('button', {
+    name: /Married couple with two children/,
+  });
+  fireEvent.click(exampleCard);
+  expect(await screen.findByText('$40,000')).toBeInTheDocument();
+  fireEvent.change(screen.getByDisplayValue('40,000'), {
+    target: { value: '90,000' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+  return exampleCard;
 }
 
 const queryClient = new QueryClient();
@@ -135,6 +168,8 @@ beforeAll(() => {
 
 afterEach(() => {
   queryClient.clear();
+  // Each test starts with no answer recorded as shown.
+  rememberShownHouseholdRequest(queryClient, null);
   vi.unstubAllGlobals();
   pauseHouseholdCalculations(0);
 });
@@ -159,24 +194,105 @@ describe('HouseholdImpactTab after a rate-limit refusal', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('$40,000')).toBeInTheDocument();
     expect(screen.queryByText('$90,000')).not.toBeInTheDocument();
-    // The status line under the button says why the page waits.
+    // The status line under the button says when the page can calculate
+    // again.
+    expect(screen.getByText(/This page can calculate again in \d+ s\./)).toBeInTheDocument();
+  });
+
+  it('announces the shared limit once, without the countdown', async () => {
+    // A live region is read again whenever its text changes, and the
+    // countdown changes every second.
+    stubFetch(() => tooManyRequests());
+    renderHouseholdImpactTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+
     expect(
-      screen.getByText(
-        /^Everyone on your network, such as a workshop or an office, shares a limit on calculations a minute\. This page can calculate again in \d+ s\.$/,
-      ),
+      await screen.findByText(/This page can calculate again in \d+ s\./),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('status').map((region) => region.textContent)).toEqual([
+      'Everyone on your network, such as a workshop or an office, shares a limit on calculations a minute.',
+    ]);
+  });
+
+  it("keeps an example's card selected while its results stay after a refusal", async () => {
+    stubFetch(() => tooManyRequests());
+    renderHouseholdImpactTab();
+
+    const exampleCard = await calculateExampleAtHigherIncome();
+
+    expect(
+      await screen.findByText('The results below are for the household shown before.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(exampleCard).toHaveClass('ring-2');
+  });
+
+  it('rescales a shown example with the x-axis buttons, without calculating', async () => {
+    const calculations = stubFetch(() => tooManyRequests());
+    renderHouseholdImpactTab();
+    const exampleCard = await screen.findByRole('button', {
+      name: /Married couple with two children/,
+    });
+    fireEvent.click(exampleCard);
+    expect(await screen.findByText('$40,000')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '$500k' }));
+
+    expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[0,500000]');
+    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '$500k' })).toHaveClass('bg-primary-500');
+    expect(exampleCard).toHaveClass('ring-2');
+    expect(calculations).toEqual([]);
+  });
+
+  it('rescales an example kept after a refusal with the x-axis buttons, without calculating', async () => {
+    const calculations = stubFetch(() => tooManyRequests());
+    renderHouseholdImpactTab();
+    const exampleCard = await calculateExampleAtHigherIncome();
+    await screen.findByText('The results below are for the household shown before.');
+    const calculationsSent = calculations.length;
+    // The minute passes.
+    act(() => pauseHouseholdCalculations(0));
+
+    fireEvent.click(screen.getByRole('button', { name: '$500k' }));
+
+    expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[0,500000]');
+    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '$500k' })).toHaveClass('bg-primary-500');
+    expect(exampleCard).toHaveClass('ring-2');
+    expect(calculations).toHaveLength(calculationsSent);
+  });
+
+  it('shows a refusal itself after the household tab is opened again', async () => {
+    // Leaving the tab and coming back empties the results area, so a later
+    // refusal must not bring the earlier answer back.
+    let refuseCalculations = false;
+    stubFetch((revertsCut) =>
+      refuseCalculations ? tooManyRequests() : calculatedAnswer(revertsCut),
+    );
+    renderHouseholdImpactTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+    expect(await screen.findByText('+$250/year')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Policy overview' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Household impact' }));
+
+    refuseCalculations = true;
+    fireEvent.change(screen.getByDisplayValue('50,000'), {
+      target: { value: '90,000' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+
+    expect(
+      await screen.findByText('Household calculator temporarily unavailable'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('+$250/year')).not.toBeInTheDocument();
+    expect(screen.queryByText('$50,000')).not.toBeInTheDocument();
   });
 
   it('highlights the range of the answer on screen after a refused change of range', async () => {
     let refuseCalculations = false;
     stubFetch((revertsCut) =>
-      refuseCalculations
-        ? tooManyRequests()
-        : jsonResponse(200, {
-            status: 'ok',
-            message: null,
-            result: calculatedHousehold(revertsCut),
-          }),
+      refuseCalculations ? tooManyRequests() : calculatedAnswer(revertsCut),
     );
     renderHouseholdImpactTab();
     fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));

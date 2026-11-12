@@ -216,7 +216,70 @@ describe('ImpactAnalysis', () => {
     });
 
     await screen.findByRole('status');
-    expect(onShownRequestChange).toHaveBeenLastCalledWith(earlierRequest);
+    // With its answer, so the page can tell whether it is an example's.
+    expect(onShownRequestChange).toHaveBeenLastCalledWith(
+      earlierRequest,
+      impactAnswer(350),
+    );
+    queryClient.clear();
+  });
+
+  it('shows the household calculated last after a refusal, when it is the one on screen', async () => {
+    // The reader calculated one household, then another; the firewall
+    // refused the third.
+    const queryClient = new QueryClient();
+    const secondRequest = { ...earlierRequest, income: 60000 };
+    vi.spyOn(api, 'calculateHouseholdImpact').mockImplementation(async (request) => {
+      if (request.income === earlierRequest.income) {
+        return impactAnswer(350);
+      }
+      if (request.income === secondRequest.income) {
+        return impactAnswer(300);
+      }
+      throw refusal;
+    });
+    const showResults = renderImpactAnalysis(queryClient, { request: earlierRequest });
+    expect(await screen.findByText('+$350/year')).toBeInTheDocument();
+    showResults({ request: secondRequest });
+    expect(await screen.findByText('+$300/year')).toBeInTheDocument();
+
+    showResults({ request: householdRequest });
+
+    expect(await screen.findByRole('status')).toHaveTextContent(refusal.message);
+    expect(screen.getByText('$60,000')).toBeInTheDocument();
+    expect(screen.getByText('+$300/year')).toBeInTheDocument();
+    expect(screen.queryByText('$50,000')).not.toBeInTheDocument();
+    expect(screen.queryByText('$75,000')).not.toBeInTheDocument();
+    queryClient.clear();
+  });
+
+  it('shows a refusal itself after an error panel', async () => {
+    // The error panel replaced the earlier answer, so a later refusal must
+    // not bring that answer back.
+    const queryClient = new QueryClient();
+    const failedRequest = { ...earlierRequest, income: 60000 };
+    queryClient.setQueryData(['householdImpact', earlierRequest], impactAnswer(350));
+    vi.spyOn(api, 'calculateHouseholdImpact').mockImplementation(async (request) => {
+      if (request.income === failedRequest.income) {
+        throw new HouseholdCalculationError(
+          'PolicyEngine could not calculate this household (HTTP 400): Invalid household.',
+          400,
+          false,
+        );
+      }
+      throw refusal;
+    });
+    const showResults = renderImpactAnalysis(queryClient, { request: earlierRequest });
+    showResults({ request: failedRequest });
+    expect(
+      await screen.findByText(/could not calculate this household \(HTTP 400\)/),
+    ).toBeInTheDocument();
+
+    showResults({ request: householdRequest });
+
+    expect(await screen.findByText(refusal.message)).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText('$50,000')).not.toBeInTheDocument();
     queryClient.clear();
   });
 });
