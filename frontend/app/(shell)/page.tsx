@@ -7,7 +7,10 @@ import AggregateImpact from '@/components/AggregateImpact';
 import ExampleHouseholds, { type ExampleHouseholdProfile } from '@/components/ExampleHouseholds';
 import PolicyOverview from '@/components/PolicyOverview';
 import CongressionalDistrictImpact from '@/components/CongressionalDistrictImpact';
-import { submitHouseholdRequest } from '@/hooks/useHouseholdImpact';
+import {
+  submitHouseholdRequest,
+  useHouseholdCalculationPause,
+} from '@/hooks/useHouseholdImpact';
 import type { HouseholdImpactResponse, HouseholdRequest } from '@/lib/types';
 import { parseHashParams } from '@/lib/embedding';
 
@@ -134,6 +137,10 @@ function HouseholdImpactTab() {
   const [maxEarnings, setMaxEarnings] = useState(100000);
   const [triggered, setTriggered] = useState(false);
   const [submittedRequest, setSubmittedRequest] = useState<HouseholdRequest | null>(null);
+  // After a refusal for the firewall's limit, the page calculates nothing
+  // for a minute: everyone on the network shares the limit.
+  const calculationPauseSeconds = useHouseholdCalculationPause();
+  const calculationsPaused = calculationPauseSeconds > 0;
   const impactRef = useRef<HTMLDivElement | null>(null);
   const [precomputedImpact, setPrecomputedImpact] =
     useState<HouseholdImpactResponse | null>(null);
@@ -206,8 +213,11 @@ function HouseholdImpactTab() {
   });
 
   const handleCalculate = () => {
-    // A failed calculation of the same household runs again.
-    submitHouseholdRequest(queryClient, buildRequest(), setSubmittedRequest);
+    // A failed calculation of the same household runs again. Nothing
+    // changes while calculations are paused.
+    if (!submitHouseholdRequest(queryClient, buildRequest(), setSubmittedRequest)) {
+      return;
+    }
     setTriggered(true);
     // Manual recompute clears any active precomputed example so the
     // chart goes back to fetching live numbers.
@@ -383,9 +393,12 @@ function HouseholdImpactTab() {
         <div className="mt-8">
           <button
             onClick={handleCalculate}
-            className="py-3 px-10 rounded-lg font-semibold text-white bg-primary-500 hover:bg-primary-600 active:bg-primary-700 transition-all shadow-sm hover:shadow-md sm:w-auto w-full"
+            disabled={calculationsPaused}
+            className="py-3 px-10 rounded-lg font-semibold text-white bg-primary-500 hover:bg-primary-600 active:bg-primary-700 transition-all shadow-sm hover:shadow-md sm:w-auto w-full disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Calculate impact
+            {calculationsPaused
+              ? `Calculate again in ${calculationPauseSeconds} s`
+              : 'Calculate impact'}
           </button>
         </div>
       </section>
@@ -397,6 +410,7 @@ function HouseholdImpactTab() {
           {[100000, 200000, 500000, 1000000].map((v) => (
             <button
               key={v}
+              disabled={calculationsPaused}
               onClick={() => {
                 setMaxEarnings(v);
                 if (submittedRequest) {
