@@ -21,7 +21,7 @@ interface Props {
   triggered: boolean;
   maxEarnings?: number;
   /** When supplied, the chart renders this precomputed payload instead
-   * of firing a live /us/calculate request. */
+   * of sending a live household calculation through the dashboard API. */
   precomputed?: HouseholdImpactResponse | null;
   /**
    * Told which household's answer is shown, and the answer, so the page can
@@ -197,8 +197,11 @@ export default function ImpactAnalysis({
 
   return (
     <div className="space-y-8">
+      {/* Not a live region: calculations are paused whenever this notice
+          first appears, and the explanation beside the Calculate button is
+          the one live region that announces the shared limit. */}
       {rateLimitNotice && (
-        <div role="status" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900">
           <p>{rateLimitNotice}</p>
           <p className="mt-1 text-sm">The results below are for the household shown before.</p>
         </div>

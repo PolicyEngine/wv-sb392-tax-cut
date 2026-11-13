@@ -451,24 +451,25 @@ function HouseholdImpactTab() {
           {[100000, 200000, 500000, 1000000].map((v) => (
             <button
               key={v}
-              disabled={calculationsPaused}
+              // Rescaling an example on screen, chosen or kept after a
+              // refusal, sends no calculation, so the pause does not stop it.
+              disabled={calculationsPaused && shownExample === null}
               onClick={() => {
-                // An example's results on screen, chosen or kept after a
-                // refusal, are drawn again on the new range without
-                // calculating; otherwise the submitted household is
-                // calculated on it.
-                const household = shownExample?.request ?? submittedRequest;
-                if (
-                  household === null ||
+                // An example's results on screen are drawn again on the new
+                // range without calculating; otherwise the submitted
+                // household is calculated on it.
+                if (shownExample !== null) {
+                  setSubmittedRequest({ ...shownExample.request, max_earnings: v });
+                  setPrecomputedImpact(shownExample.answer);
+                  setMaxEarnings(v);
+                } else if (
+                  submittedRequest === null ||
                   submitHouseholdRequest(
                     queryClient,
-                    { ...household, max_earnings: v },
+                    { ...submittedRequest, max_earnings: v },
                     setSubmittedRequest
                   )
                 ) {
-                  if (shownExample !== null) {
-                    setPrecomputedImpact(shownExample.answer);
-                  }
                   setMaxEarnings(v);
                 }
               }}
