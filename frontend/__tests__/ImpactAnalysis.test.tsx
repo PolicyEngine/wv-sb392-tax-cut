@@ -120,6 +120,20 @@ afterEach(() => {
 });
 
 describe('ImpactAnalysis', () => {
+  it('says a first calculation can take a few minutes', async () => {
+    const queryClient = new QueryClient();
+    vi.spyOn(api, 'calculateHouseholdImpact').mockReturnValue(
+      new Promise<HouseholdImpactResponse>(() => undefined),
+    );
+    renderImpactAnalysis(queryClient, { request: householdRequest });
+
+    expect(await screen.findByText('Calculating impact...')).toBeInTheDocument();
+    expect(
+      screen.queryByText('A first calculation can take a few minutes.'),
+    ).toBeInTheDocument();
+    queryClient.clear();
+  });
+
   it('shows the last answer and the notice after a rate-limit refusal', async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(['householdImpact', earlierRequest], impactAnswer(350));

@@ -388,7 +388,9 @@ describe("calculateHouseholdImpact", () => {
     );
 
     expect(await calculationFailure()).toMatchObject({
-      message: expect.stringContaining("HTTP 504"),
+      message:
+        "PolicyEngine could not calculate this household (HTTP 504): The " +
+        "Public API did not answer in time.",
       status: 504,
       retryable: false,
     });
@@ -410,7 +412,9 @@ describe("calculateHouseholdImpact", () => {
     });
   });
 
-  it("gives up after two minutes without an answer", async () => {
+  it("gives up after 13 minutes without an answer", async () => {
+    // 30 s more than the dashboard API's 750-s wait for the household, so
+    // the dashboard API's own answer, a 504 included, arrives first.
     vi.useFakeTimers();
     vi.stubGlobal(
       "fetch",
@@ -424,11 +428,16 @@ describe("calculateHouseholdImpact", () => {
       ),
     );
 
-    const failure = calculationFailure();
-    await vi.advanceTimersByTimeAsync(120_000);
+    let failureSettled = false;
+    const failure = calculationFailure().finally(() => {
+      failureSettled = true;
+    });
+    await vi.advanceTimersByTimeAsync(779_999);
+    expect(failureSettled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
 
     expect(await failure).toMatchObject({
-      message: expect.stringMatching(/two minutes/i),
+      message: "The calculation took longer than 13 minutes. Try again.",
       status: null,
       retryable: false,
       rateLimited: false,
