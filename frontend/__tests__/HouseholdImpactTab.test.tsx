@@ -8,6 +8,7 @@ import {
   pauseHouseholdCalculations,
   rememberShownHouseholdRequest,
 } from '../hooks/useHouseholdImpact';
+import { api } from '../lib/api';
 
 // Without a measured size Recharts draws nothing, so the x-axis becomes an
 // element that shows its range and the other chart parts draw nothing;
@@ -171,6 +172,7 @@ afterEach(() => {
   // Each test starts with no answer recorded as shown.
   rememberShownHouseholdRequest(queryClient, null);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   pauseHouseholdCalculations(0);
 });
 
@@ -202,15 +204,41 @@ describe('HouseholdImpactTab after a rate-limit refusal', () => {
   it('announces the shared limit once, without the countdown', async () => {
     // A live region is read again whenever its text changes, and the
     // countdown changes every second.
-    stubFetch(() => tooManyRequests());
+    const announcedExplanation =
+      'Everyone on your network, such as a workshop or an office, shares a limit on calculations a minute.';
+    let refuseCalculations = true;
+    stubFetch((revertsCut) =>
+      refuseCalculations ? tooManyRequests() : calculatedAnswer(revertsCut),
+    );
     renderHouseholdImpactTab();
+
+    // With nothing shown before, the refusal is shown in place of results.
     fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
 
     expect(
       await screen.findByText(/This page can calculate again in \d+ s\./),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('status').map((region) => region.textContent)).toEqual([
-      'Everyone on your network, such as a workshop or an office, shares a limit on calculations a minute.',
+      announcedExplanation,
+    ]);
+
+    // After the minute, a household is calculated; the next one is refused,
+    // and the earlier answer stays on screen with the notice above it.
+    act(() => pauseHouseholdCalculations(0));
+    refuseCalculations = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+    expect(await screen.findByText('+$250/year')).toBeInTheDocument();
+    refuseCalculations = true;
+    fireEvent.change(screen.getByDisplayValue('50,000'), {
+      target: { value: '90,000' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+
+    expect(
+      await screen.findByText('The results below are for the household shown before.'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('status').map((region) => region.textContent)).toEqual([
+      announcedExplanation,
     ]);
   });
 
@@ -243,6 +271,31 @@ describe('HouseholdImpactTab after a rate-limit refusal', () => {
     expect(screen.getByRole('button', { name: '$500k' })).toHaveClass('bg-primary-500');
     expect(exampleCard).toHaveClass('ring-2');
     expect(calculations).toEqual([]);
+  });
+
+  it('rescales a shown example with the x-axis buttons during a pause, without calculating', async () => {
+    stubFetch(() => tooManyRequests());
+    const calculateHouseholdImpact = vi.spyOn(api, 'calculateHouseholdImpact');
+    renderHouseholdImpactTab();
+    const exampleCard = await screen.findByRole('button', {
+      name: /Married couple with two children/,
+    });
+    fireEvent.click(exampleCard);
+    expect(await screen.findByText('$40,000')).toBeInTheDocument();
+    // Another calculation from the same network met the shared limit.
+    act(() => pauseHouseholdCalculations());
+
+    // Drawing the example on a new range sends nothing, so the pause does
+    // not stop it.
+    const widerRangeButton = screen.getByRole('button', { name: '$500k' });
+    expect(widerRangeButton).toBeEnabled();
+    fireEvent.click(widerRangeButton);
+
+    expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[0,500000]');
+    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(widerRangeButton).toHaveClass('bg-primary-500');
+    expect(exampleCard).toHaveClass('ring-2');
+    expect(calculateHouseholdImpact).not.toHaveBeenCalled();
   });
 
   it('rescales an example kept after a refusal with the x-axis buttons, without calculating', async () => {

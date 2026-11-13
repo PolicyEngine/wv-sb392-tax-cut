@@ -128,7 +128,10 @@ describe('ImpactAnalysis', () => {
 
     showResults({ request: householdRequest });
 
-    expect(await screen.findByRole('status')).toHaveTextContent(refusal.message);
+    expect(await screen.findByText(refusal.message)).toBeInTheDocument();
+    // The explanation beside the Calculate button is the page's one live
+    // region for the pause, so the notice is not another.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     // The earlier household's income and answer, not the refused one's.
     expect(screen.getByText('$50,000')).toBeInTheDocument();
     expect(screen.getByText('+$350/year')).toBeInTheDocument();
@@ -152,7 +155,7 @@ describe('ImpactAnalysis', () => {
 
     showResults({ request: householdRequest });
 
-    await screen.findByRole('status');
+    await screen.findByText(refusal.message);
     expect(screen.getByText('$50,000')).toBeInTheDocument();
     expect(screen.getByText('+$350/year')).toBeInTheDocument();
     expect(screen.queryByText('$60,000')).not.toBeInTheDocument();
@@ -170,9 +173,9 @@ describe('ImpactAnalysis', () => {
 
     showResults({ request: householdRequest, precomputed: null });
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'The results below are for the household shown before.',
-    );
+    expect(
+      await screen.findByText('The results below are for the household shown before.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('$40,000')).toBeInTheDocument();
     expect(screen.getByText('+$500/year')).toBeInTheDocument();
     expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[0,200000]');
@@ -193,7 +196,7 @@ describe('ImpactAnalysis', () => {
       maxEarnings: 1000000,
     });
 
-    await screen.findByRole('status');
+    await screen.findByText(refusal.message);
     expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[0,100000]');
     queryClient.clear();
   });
@@ -215,7 +218,7 @@ describe('ImpactAnalysis', () => {
       onShownRequestChange,
     });
 
-    await screen.findByRole('status');
+    await screen.findByText(refusal.message);
     // With its answer, so the page can tell whether it is an example's.
     expect(onShownRequestChange).toHaveBeenLastCalledWith(
       earlierRequest,
@@ -245,7 +248,7 @@ describe('ImpactAnalysis', () => {
 
     showResults({ request: householdRequest });
 
-    expect(await screen.findByRole('status')).toHaveTextContent(refusal.message);
+    expect(await screen.findByText(refusal.message)).toBeInTheDocument();
     expect(screen.getByText('$60,000')).toBeInTheDocument();
     expect(screen.getByText('+$300/year')).toBeInTheDocument();
     expect(screen.queryByText('$50,000')).not.toBeInTheDocument();
@@ -278,7 +281,9 @@ describe('ImpactAnalysis', () => {
     showResults({ request: householdRequest });
 
     expect(await screen.findByText(refusal.message)).toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The results below are for the household shown before.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('$50,000')).not.toBeInTheDocument();
     queryClient.clear();
   });
