@@ -34,8 +34,14 @@ import {
 
 const policyengine = createPolicyEngineApiClient();
 
-/** How long a calculation may take before the page gives up on it. */
-const CALCULATION_TIMEOUT_MILLISECONDS = 120_000;
+/**
+ * How long a household calculation may take before the page gives up on
+ * it: 30 s more than the 750 s the dashboard API waits for the Public API's
+ * answer (its route runs for at most 800 s), so the dashboard API's own
+ * answer, a 504 included, reaches the page first (the
+ * policyengine-api-access skill).
+ */
+const CALCULATION_TIMEOUT_MILLISECONDS = 780_000;
 
 /**
  * Household calculation failures worth one more try. A 502 from the
@@ -260,7 +266,7 @@ async function calculateHousehold(
   } catch (error) {
     if (controller.signal.aborted) {
       throw new HouseholdCalculationError(
-        "The calculation took longer than two minutes. Try again.",
+        `The calculation took longer than ${CALCULATION_TIMEOUT_MILLISECONDS / 60_000} minutes. Try again.`,
         null,
         false,
       );
