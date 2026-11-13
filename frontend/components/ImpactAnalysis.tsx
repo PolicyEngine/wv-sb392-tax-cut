@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { useEffect } from 'react';
 import { useHouseholdImpact } from '@/hooks/useHouseholdImpact';
 import type { HouseholdImpactResponse, HouseholdRequest } from '@/lib/types';
 import ChartWatermark from './ChartWatermark';
@@ -20,8 +21,18 @@ interface Props {
   triggered: boolean;
   maxEarnings?: number;
   /** When supplied, the chart renders this precomputed payload instead
-   * of firing a live /us/calculate request. */
+   * of sending a live household calculation through the dashboard API. */
   precomputed?: HouseholdImpactResponse | null;
+  /**
+   * Told which household's answer is shown, and the answer, so the page can
+   * highlight its chart range and, for an example, its card: after a
+   * refusal for the firewall's limit, that is the answer shown before,
+   * calculated or an example's, not the refused household's.
+   */
+  onShownRequestChange?: (
+    request: HouseholdRequest | null,
+    answer: HouseholdImpactResponse | undefined
+  ) => void;
 }
 
 export default function ImpactAnalysis({
@@ -29,15 +40,15 @@ export default function ImpactAnalysis({
   triggered,
   maxEarnings,
   precomputed,
+  onShownRequestChange,
 }: Props) {
-  // Skip the live fetch when precomputed data is supplied.
-  const liveQuery = useHouseholdImpact(
-    request,
-    triggered && !precomputed,
-  );
-  const data = precomputed ?? liveQuery.data;
-  const isLoading = !precomputed && liveQuery.isLoading;
-  const error = precomputed ? null : liveQuery.error;
+  // A precomputed example is shown without a live calculation. After a
+  // rate-limit refusal, the answer shown before stays, with its household.
+  const { data, isLoading, error, shownRequest, rateLimitNotice } =
+    useHouseholdImpact(request, triggered, precomputed ?? null);
+  useEffect(() => {
+    onShownRequestChange?.(shownRequest, data);
+  }, [onShownRequestChange, shownRequest, data]);
 
   if (!triggered) return null;
 
@@ -47,6 +58,9 @@ export default function ImpactAnalysis({
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
           <p className="mt-4 text-gray-600">Calculating impact...</p>
+          <p className="mt-1 text-sm text-gray-500">
+            A first calculation can take a few minutes.
+          </p>
         </div>
       </div>
     );
@@ -92,7 +106,8 @@ export default function ImpactAnalysis({
   const stateTaxChangePoint = benefitData.state_tax_change;
   const netIncomeChangePoint = benefitData.net_income_change;
 
-  const xMax = maxEarnings ?? data.x_axis_max;
+  // The range the shown answer was calculated for.
+  const xMax = shownRequest?.max_earnings ?? maxEarnings ?? data.x_axis_max;
 
   // Build chart data. Keep single net-income-change line, but enrich each
   // point with the per-component deltas so the tooltip can show all three.
@@ -185,15 +200,24 @@ export default function ImpactAnalysis({
 
   return (
     <div className="space-y-8">
+      {/* Not a live region: calculations are paused whenever this notice
+          first appears, and the explanation beside the Calculate button is
+          the one live region that announces the shared limit. */}
+      {rateLimitNotice && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900">
+          <p>{rateLimitNotice}</p>
+          <p className="mt-1 text-sm">The results below are for the household shown before.</p>
+        </div>
+      )}
       <h2 className="text-2xl font-bold text-primary">Impact analysis</h2>
 
       {/* Personal impact */}
       <div>
         <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Your personal impact from the WV SB 392 income tax cut ({request?.year ?? 2026})
+          Your personal impact from the WV SB 392 income tax cut ({shownRequest?.year ?? 2026})
         </h3>
         <p className="text-gray-600 mb-4">
-          Based on your employment income of <strong>{formatCurrency(request?.income ?? 0)}</strong>,
+          Based on your employment income of <strong>{formatCurrency(shownRequest?.income ?? 0)}</strong>,
           comparing current law (2026) to pre-2026 law.
         </p>
 
