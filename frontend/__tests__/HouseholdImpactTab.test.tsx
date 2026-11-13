@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -358,5 +358,30 @@ describe('HouseholdImpactTab after a rate-limit refusal', () => {
     expect(screen.getByText('+$250/year')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '$100k' })).toHaveClass('bg-primary-500');
     expect(screen.getByRole('button', { name: '$1M' })).not.toHaveClass('bg-primary-500');
+  });
+});
+
+describe('HouseholdImpactTab after a 504', () => {
+  it("shows the page's own message, without the note about the API being updated", async () => {
+    // The error panel shows that note when the message contains "500".
+    stubFetch(() =>
+      jsonResponse(504, {
+        status: 'error',
+        message: 'The Public API did not answer in time.',
+        result: null,
+      }),
+    );
+    renderHouseholdImpactTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Calculate impact' }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          "PolicyEngine's calculation service did not answer in time (HTTP 504). " +
+            'Try again in a few minutes.',
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/being updated/)).not.toBeInTheDocument();
   });
 });
