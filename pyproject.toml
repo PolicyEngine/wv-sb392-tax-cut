@@ -3,7 +3,7 @@ name = "wv-sb392-tax-cut"
 version = "1.0.0"
 description = "West Virginia SB 392 income tax cut dashboard and data pipeline"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "policyengine-us>=1.150.0",
     "numpy>=1.24.0",
